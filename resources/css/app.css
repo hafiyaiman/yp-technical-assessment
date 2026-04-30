@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "../../vendor/tallstackui/tallstackui/css/v4.css";
+
+@plugin "@tailwindcss/forms";
+
+@source "../../vendor/tallstackui/tallstackui/**/*.php";
+@source "../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php";
+@source "../views";
+
+@theme {
+    --font-sans: Figtree, ui-sans-serif, system-ui, sans-serif;
+}
