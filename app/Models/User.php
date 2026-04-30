@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -21,6 +22,54 @@ class User extends Authenticatable
         'email',
         'password',
     ];
+
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class)->withTimestamps();
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return $this->roles->contains('slug', $role);
+    }
+
+    /**
+     * @param  array<int, string>  $roles
+     */
+    public function hasAnyRole(array $roles): bool
+    {
+        return $this->roles->whereIn('slug', $roles)->isNotEmpty();
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        return $this->roles
+            ->loadMissing('permissions')
+            ->pluck('permissions')
+            ->flatten()
+            ->contains('slug', $permission);
+    }
+
+    /**
+     * @param  array<int, string>  $permissions
+     */
+    public function hasAnyPermission(array $permissions): bool
+    {
+        return $this->roles
+            ->loadMissing('permissions')
+            ->pluck('permissions')
+            ->flatten()
+            ->whereIn('slug', $permissions)
+            ->isNotEmpty();
+    }
+
+    public function assignRole(string $role): void
+    {
+        $role = Role::query()->where('slug', $role)->firstOrFail();
+
+        $this->roles()->syncWithoutDetaching($role->id);
+        $this->unsetRelation('roles');
+    }
 
     /**
      * The attributes that should be hidden for serialization.

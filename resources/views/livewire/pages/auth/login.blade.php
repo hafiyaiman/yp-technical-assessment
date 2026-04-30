@@ -1,6 +1,7 @@
 <?php
 
 use App\Livewire\Forms\LoginForm;
+use App\Services\Auth\LoginOtpService;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -12,15 +13,17 @@ new #[Layout('layouts.guest')] class extends Component
     /**
      * Handle an incoming authentication request.
      */
-    public function login(): void
+    public function login(LoginOtpService $otps): void
     {
         $this->validate();
 
-        $this->form->authenticate();
+        $user = $this->form->authenticate();
 
         Session::regenerate();
 
-        $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
+        $otps->send($user, $this->form->remember);
+
+        $this->redirect(route('login.otp'), navigate: true);
     }
 }; ?>
 

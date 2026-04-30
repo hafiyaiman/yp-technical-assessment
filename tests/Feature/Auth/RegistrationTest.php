@@ -4,6 +4,10 @@ namespace Tests\Feature\Auth;
 
 use Livewire\Volt\Volt;
 
+beforeEach(function (): void {
+    $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+});
+
 test('registration screen can be rendered', function () {
     $response = $this->get('/register');
 

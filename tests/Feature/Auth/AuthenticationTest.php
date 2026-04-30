@@ -1,6 +1,10 @@
 <?php
 
+use App\Models\LoginOtp;
 use App\Models\User;
+use App\Notifications\LoginOtpNotification;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Livewire\Volt\Volt;
 
 test('login screen can be rendered', function () {
@@ -11,7 +15,9 @@ test('login screen can be rendered', function () {
         ->assertSeeVolt('pages.auth.login');
 });
 
-test('users can authenticate using the login screen', function () {
+test('valid login credentials send an otp and redirect to verification', function () {
+    Notification::fake();
+
     $user = User::factory()->create();
 
     $component = Volt::test('pages.auth.login')
@@ -22,9 +28,34 @@ test('users can authenticate using the login screen', function () {
 
     $component
         ->assertHasNoErrors()
+        ->assertRedirect(route('login.otp', absolute: false));
+
+    $this->assertGuest();
+    $this->assertDatabaseHas('login_otps', ['user_id' => $user->id, 'consumed_at' => null]);
+    Notification::assertSentTo($user, LoginOtpNotification::class);
+});
+
+test('users can authenticate using the emailed otp', function () {
+    $user = User::factory()->create();
+
+    session([
+        \App\Services\Auth\LoginOtpService::SESSION_USER_ID => $user->id,
+        \App\Services\Auth\LoginOtpService::SESSION_REMEMBER => false,
+    ]);
+
+    LoginOtp::query()->create([
+        'user_id' => $user->id,
+        'code_hash' => Hash::make('123456'),
+        'expires_at' => now()->addMinutes(10),
+    ]);
+
+    Volt::test('pages.auth.login-otp')
+        ->set('code', '123456')
+        ->call('verify')
+        ->assertHasNoErrors()
         ->assertRedirect(route('dashboard', absolute: false));
 
-    $this->assertAuthenticated();
+    $this->assertAuthenticatedAs($user);
 });
 
 test('users can not authenticate with invalid password', function () {
@@ -52,7 +83,8 @@ test('navigation menu can be rendered', function () {
 
     $response
         ->assertOk()
-        ->assertSee('TallStack UI is active')
+        ->assertSee('Exam Activity')
+        ->assertSee('Active Students')
         ->assertSeeVolt('layout.navigation');
 });
 
