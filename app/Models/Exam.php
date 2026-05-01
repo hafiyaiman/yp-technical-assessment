@@ -15,6 +15,7 @@ class Exam extends Model
 
     protected $fillable = [
         'lecturer_id',
+        'teaching_assignment_id',
         'school_class_id',
         'subject_id',
         'title',
@@ -41,6 +42,11 @@ class Exam extends Model
     public function lecturer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'lecturer_id');
+    }
+
+    public function teachingAssignment(): BelongsTo
+    {
+        return $this->belongsTo(TeachingAssignment::class);
     }
 
     public function schoolClass(): BelongsTo
@@ -85,6 +91,11 @@ class Exam extends Model
             ->published()
             ->available()
             ->where('school_class_id', $student->school_class_id);
+    }
+
+    public function scopeAssignedTo(Builder $query, User $lecturer): Builder
+    {
+        return $query->whereHas('teachingAssignment', fn (Builder $query) => $query->where('lecturer_id', $lecturer->id));
     }
 
     public function isPublished(): bool

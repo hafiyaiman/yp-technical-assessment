@@ -9,7 +9,7 @@ class SchoolClassPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasPermission('manage-classes');
+        return $user->hasAnyPermission(['manage-classes', 'view-assigned-classes']);
     }
 
     public function create(User $user): bool

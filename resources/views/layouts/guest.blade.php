@@ -28,6 +28,7 @@
             </div>
         </div>
 
+        <x-dialog />
         @livewireScripts
     </body>
 </html>

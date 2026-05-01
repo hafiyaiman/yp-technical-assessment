@@ -12,7 +12,7 @@ class ExamPublicationService
 {
     public function publish(Exam $exam): Exam
     {
-        $exam->loadMissing(['questions.options', 'schoolClass.subjects']);
+        $exam->loadMissing(['questions.options', 'schoolClass.subjects', 'teachingAssignment']);
 
         $this->validateCanPublish($exam);
 
@@ -49,8 +49,19 @@ class ExamPublicationService
             $errors['school_class_id'] = __('A class is required.');
         }
 
+        if ($exam->teaching_assignment_id === null) {
+            $errors['teaching_assignment_id'] = __('A teaching assignment is required.');
+        }
+
         if ($exam->subject_id === null) {
             $errors['subject_id'] = __('A subject is required.');
+        }
+
+        if ($exam->teachingAssignment !== null
+            && ($exam->teachingAssignment->school_class_id !== $exam->school_class_id
+                || $exam->teachingAssignment->subject_id !== $exam->subject_id
+                || $exam->teachingAssignment->lecturer_id !== $exam->lecturer_id)) {
+            $errors['teaching_assignment_id'] = __('The exam must match its teaching assignment.');
         }
 
         if ($exam->duration_minutes < 1) {

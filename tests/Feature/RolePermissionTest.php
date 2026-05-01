@@ -9,10 +9,13 @@ beforeEach(function (): void {
 });
 
 test('seeded roles have expected permissions', function (): void {
+    $admin = Role::query()->where('slug', 'system-admin')->firstOrFail();
     $lecturer = Role::query()->where('slug', 'lecturer')->firstOrFail();
     $student = Role::query()->where('slug', 'student')->firstOrFail();
 
-    expect($lecturer->permissions->pluck('slug')->all())->toContain('manage-exams', 'manage-subjects');
+    expect($admin->permissions->pluck('slug')->all())->toContain('manage-users', 'manage-classes', 'manage-teaching-assignments');
+    expect($lecturer->permissions->pluck('slug')->all())->toContain('view-assigned-classes', 'manage-exams', 'grade-exams');
+    expect($lecturer->permissions->pluck('slug')->all())->not->toContain('manage-subjects');
     expect($student->permissions->pluck('slug')->all())->toContain('take-exams', 'view-own-results');
 });
 
@@ -27,10 +30,13 @@ test('users can be assigned roles and checked for permissions', function (): voi
 });
 
 test('role middleware allows only matching users', function (): void {
+    $admin = User::factory()->systemAdmin()->create();
     $lecturer = User::factory()->lecturer()->create();
     $student = User::factory()->student()->create();
 
+    $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk();
     $this->actingAs($lecturer)->get(route('lecturer.dashboard'))->assertOk();
+    $this->actingAs($lecturer)->get(route('admin.dashboard'))->assertForbidden();
     $this->actingAs($student)->get(route('lecturer.dashboard'))->assertForbidden();
 });
 

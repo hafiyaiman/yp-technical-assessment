@@ -57,7 +57,10 @@ After MySQL credentials are ready, run:
 
 ```bash
 php artisan migrate
+php artisan db:seed
 ```
+
+The seeder creates a richer demo school dataset: one admin, seven lecturers, 49 students, five classes, six reusable subjects, teaching assignments for each class-subject pair, and several published/draft/closed exams.
 
 ## Cloudflare R2 Storage
 
@@ -95,14 +98,24 @@ The first portal module is implemented with Breeze authentication, email OTP log
 
 Seeded roles:
 
-- `lecturer`: can manage students, classes, subjects, and exams.
+- `system-admin`: can manage users, lecturers, students, classes, subjects, student enrollment, and lecturer teaching assignments.
+- `lecturer`: can view assigned classes, create exams, grade submissions, and view results for their own teaching assignments.
 - `student`: can take exams and view own results.
 
 Seeded demo accounts:
 
 ```text
+admin@example.com / password
 lecturer@example.com / password
+lecturer1@example.com / password
+lecturer2@example.com / password
+...
+lecturer6@example.com / password
 student@example.com / password
+student1@example.com / password
+student2@example.com / password
+...
+student48@example.com / password
 ```
 
 Role and permission checks are available through:
@@ -121,8 +134,50 @@ Route::middleware('permission:manage-exams')->group(...);
 
 Current protected route examples:
 
+- `/admin/dashboard`
 - `/lecturer/dashboard`
 - `/student/dashboard`
+
+## Examination Module
+
+The portal now includes an end-to-end online examination module.
+
+System admin routes:
+
+- `/admin/users` for admin, lecturer, and student account management.
+- `/admin/classes` for class setup, subject association, and student enrollment.
+- `/admin/subjects` for reusable subject management.
+- `/admin/teaching-assignments` for assigning lecturers to class-subject pairs.
+
+Lecturer routes:
+
+- `/lecturer/my-classes` for assigned class-subject cards.
+- `/lecturer/exams` for lecturer-owned exam listing, filtering, publishing, closing, and submissions.
+- `/lecturer/teaching/{assignment}/exams/create` for creating an exam from an assigned class-subject pair.
+- `/lecturer/exams/{exam}/edit` for the question builder.
+- `/lecturer/exams/{exam}/submissions` for open-text grading and result review.
+
+Student routes use a separate client-facing exam layout instead of the admin sidebar:
+
+- `/student/exams` for available class-assigned exams.
+- `/student/exams/{exam}` for instructions before starting.
+- `/student/attempts/{attempt}` for the timed exam screen with autosave.
+- `/student/attempts/{attempt}/review` for final review before submit.
+- `/student/attempts/{attempt}/submitted` for the success or expired state.
+- `/student/results` for past results and pending reviews.
+
+Rules implemented:
+
+- Students belong to one active class through `users.school_class_id`.
+- Subjects are reusable and assigned to classes by system admins.
+- Lecturers create exams only through assigned class-subject teaching assignments.
+- Exams store `teaching_assignment_id`, plus class and subject IDs for simple querying.
+- Students can only access published exams assigned to their class.
+- Lecturers can only see, edit, grade, and review exams for their own teaching assignments.
+- Each student gets one attempt per exam.
+- Multiple-choice questions are auto-scored.
+- Open-text questions remain pending until lecturer grading.
+- Exam timers are enforced server-side with `expires_at`.
 
 ### Email OTP With Mailpit
 
@@ -137,14 +192,14 @@ Local email is configured for Mailpit:
 ```dotenv
 MAIL_MAILER=smtp
 MAIL_HOST=127.0.0.1
-MAIL_PORT=2525
+MAIL_PORT=1025
 MAIL_USERNAME=null
 MAIL_PASSWORD=null
 MAIL_ENCRYPTION=null
 MAIL_FROM_ADDRESS="hello@example.com"
 ```
 
-Open the Mailpit UI, usually at `http://127.0.0.1:8025`, to read the OTP email. OTP codes expire after 10 minutes, and a pending code allows up to 5 failed attempts.
+Open the Mailpit UI at `http://127.0.0.1:8025` to read the OTP email. Mailpit's browser UI runs on `8025`; Laravel sends SMTP mail to `1025`. OTP codes expire after 10 minutes, and a pending code allows up to 5 failed attempts.
 
 ## TallStack UI MCP
 

@@ -19,17 +19,19 @@ class ExamPolicy
 
     public function update(User $user, Exam $exam): bool
     {
-        return $user->hasPermission('manage-exams');
+        return $user->hasPermission('manage-exams')
+            && $exam->teachingAssignment?->lecturer_id === $user->id;
     }
 
     public function publish(User $user, Exam $exam): bool
     {
-        return $user->hasPermission('manage-exams');
+        return $this->update($user, $exam);
     }
 
     public function manageSubmissions(User $user, Exam $exam): bool
     {
-        return $user->hasPermission('manage-exams');
+        return $user->hasAnyPermission(['grade-exams', 'view-exam-results'])
+            && $exam->teachingAssignment?->lecturer_id === $user->id;
     }
 
     public function take(User $user, Exam $exam): bool

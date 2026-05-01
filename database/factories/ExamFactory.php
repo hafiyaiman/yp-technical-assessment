@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Enums\ExamStatus;
 use App\Models\SchoolClass;
 use App\Models\Subject;
+use App\Models\TeachingAssignment;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -15,10 +16,13 @@ class ExamFactory extends Factory
 {
     public function definition(): array
     {
+        $assignment = TeachingAssignment::factory()->create();
+
         return [
-            'lecturer_id' => User::factory()->lecturer(),
-            'school_class_id' => SchoolClass::factory(),
-            'subject_id' => Subject::factory(),
+            'lecturer_id' => $assignment->lecturer_id,
+            'teaching_assignment_id' => $assignment->id,
+            'school_class_id' => $assignment->school_class_id,
+            'subject_id' => $assignment->subject_id,
             'title' => fake()->sentence(3),
             'instructions' => fake()->paragraph(),
             'duration_minutes' => 15,
@@ -41,6 +45,16 @@ class ExamFactory extends Factory
         return $this->state(fn (): array => [
             'status' => ExamStatus::Closed,
             'closed_at' => now(),
+        ]);
+    }
+
+    public function forAssignment(TeachingAssignment $assignment): static
+    {
+        return $this->state(fn (): array => [
+            'lecturer_id' => $assignment->lecturer_id,
+            'teaching_assignment_id' => $assignment->id,
+            'school_class_id' => $assignment->school_class_id,
+            'subject_id' => $assignment->subject_id,
         ]);
     }
 }

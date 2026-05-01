@@ -9,7 +9,7 @@ class SubjectPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasPermission('manage-subjects');
+        return $user->hasAnyPermission(['manage-subjects', 'view-assigned-classes']);
     }
 
     public function create(User $user): bool

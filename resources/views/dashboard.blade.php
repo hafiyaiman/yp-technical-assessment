@@ -65,9 +65,9 @@
                     <p class="mt-1 text-sm text-zinc-500">Total submissions for the last 3 months</p>
                 </div>
                 <div class="inline-flex w-fit rounded-md border border-zinc-200 bg-zinc-50 p-1 text-sm">
-                    <button class="rounded px-3 py-1.5 font-medium text-zinc-950 shadow-sm ring-1 ring-zinc-200 bg-white">Last 3 months</button>
-                    <button class="rounded px-3 py-1.5 text-zinc-600 hover:text-zinc-950">Last 30 days</button>
-                    <button class="rounded px-3 py-1.5 text-zinc-600 hover:text-zinc-950">Last 7 days</button>
+                    <x-button text="Last 3 months" color="gray" xs />
+                    <x-button text="Last 30 days" color="gray" xs flat />
+                    <x-button text="Last 7 days" color="gray" xs flat />
                 </div>
             </div>
 
@@ -104,14 +104,14 @@
         <section class="space-y-4">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex flex-wrap gap-2">
-                    <x-badge text="Overview" color="dark" />
+                    <x-badge text="Overview"   />
                     <x-badge text="Past Performance 3" color="gray" light />
                     <x-badge text="Key Personnel 2" color="gray" light />
                     <x-badge text="Focus Documents" color="gray" light />
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <x-button text="Customize Columns" icon="adjustments-horizontal" color="gray" outline sm />
-                    <x-button text="Add Section" icon="plus" color="dark" sm />
+                    <x-button text="Customize Columns" icon="adjustments-horizontal" outline sm />
+                    <x-button text="Add Section" icon="plus"   sm />
                 </div>
             </div>
 

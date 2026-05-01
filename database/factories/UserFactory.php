@@ -47,6 +47,11 @@ class UserFactory extends Factory
         return $this->afterCreating(fn ($user) => $user->assignRole('lecturer'));
     }
 
+    public function systemAdmin(): static
+    {
+        return $this->afterCreating(fn ($user) => $user->assignRole('system-admin'));
+    }
+
     public function student(): static
     {
         return $this->afterCreating(fn ($user) => $user->assignRole('student'));

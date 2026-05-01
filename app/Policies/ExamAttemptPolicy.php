@@ -9,7 +9,8 @@ class ExamAttemptPolicy
 {
     public function view(User $user, ExamAttempt $attempt): bool
     {
-        if ($user->hasPermission('manage-exams')) {
+        if ($user->hasPermission('view-exam-results')
+            && $attempt->exam?->teachingAssignment?->lecturer_id === $user->id) {
             return true;
         }
 
@@ -23,6 +24,7 @@ class ExamAttemptPolicy
 
     public function grade(User $user, ExamAttempt $attempt): bool
     {
-        return $user->hasPermission('manage-exams');
+        return $user->hasPermission('grade-exams')
+            && $attempt->exam?->teachingAssignment?->lecturer_id === $user->id;
     }
 }

@@ -47,6 +47,60 @@ class ExamAttemptService
         });
     }
 
+    public function saveAnswer(ExamAttempt $attempt, int $questionId, mixed $answer): ExamAttempt
+    {
+        return DB::transaction(function () use ($attempt, $questionId, $answer): ExamAttempt {
+            $attempt = ExamAttempt::query()
+                ->with(['exam.questions.options'])
+                ->lockForUpdate()
+                ->findOrFail($attempt->id);
+
+            if ($attempt->status !== ExamAttemptStatus::InProgress || $attempt->isExpired()) {
+                return $attempt;
+            }
+
+            $question = $attempt->exam->questions->firstWhere('id', $questionId);
+
+            if ($question === null) {
+                return $attempt;
+            }
+
+            if ($question->type === QuestionType::MultipleChoice) {
+                $option = filled($answer)
+                    ? QuestionOption::query()
+                        ->where('question_id', $question->id)
+                        ->find((int) $answer)
+                    : null;
+
+                $attempt->answers()->updateOrCreate(
+                    ['question_id' => $question->id],
+                    [
+                        'question_option_id' => $option?->id,
+                        'open_text_answer' => null,
+                        'points_awarded' => 0,
+                        'is_correct' => null,
+                        'feedback' => null,
+                    ],
+                );
+
+                return $attempt->fresh(['answers', 'exam.questions.options']);
+            }
+
+            $attempt->answers()->updateOrCreate(
+                ['question_id' => $question->id],
+                [
+                    'question_option_id' => null,
+                    'open_text_answer' => filled($answer) ? (string) $answer : null,
+                    'points_awarded' => 0,
+                    'is_correct' => null,
+                    'feedback' => null,
+                ],
+            );
+
+            return $attempt->fresh(['answers', 'exam.questions.options']);
+        });
+    }
+
     /**
      * @param  array<int|string, mixed>  $answers
      */
