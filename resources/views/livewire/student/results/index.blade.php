@@ -5,7 +5,7 @@ use App\Models\ExamAttempt;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('layouts.student')] class extends Component
+new #[Layout('layouts.app')] class extends Component
 {
     public function mount(): void
     {
@@ -25,36 +25,64 @@ new #[Layout('layouts.student')] class extends Component
             ->latest()
             ->get();
     }
+
+    public function gradedAttempts()
+    {
+        return $this->attempts()
+            ->filter(fn (ExamAttempt $attempt) => $attempt->status === ExamAttemptStatus::Graded)
+            ->values();
+    }
+
+    public function pendingAttempts()
+    {
+        return $this->attempts()
+            ->filter(fn (ExamAttempt $attempt) => $attempt->status === ExamAttemptStatus::Submitted)
+            ->values();
+    }
+
+    public function expiredAttempts()
+    {
+        return $this->attempts()
+            ->filter(fn (ExamAttempt $attempt) => $attempt->status === ExamAttemptStatus::Expired)
+            ->values();
+    }
 }; ?>
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
     <div class="mb-6">
-        <h1 class="text-3xl font-semibold text-zinc-950">Past results</h1>
-        <p class="mt-2 text-sm text-zinc-600">Track submitted exams, pending reviews, and graded results.</p>
+        <h1 class="text-3xl font-semibold text-zinc-950 dark:text-white">Results</h1>
+        <p class="mt-2 text-sm text-zinc-600 dark:text-dark-300">See graded marks, exams waiting for lecturer review, and expired attempts.</p>
     </div>
 
-    <div class="space-y-3">
-        @forelse ($this->attempts() as $attempt)
-            <article class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <x-badge :text="$attempt->exam->subject->name" color="gray" light />
-                        <h2 class="mt-2 text-lg font-semibold text-zinc-950">{{ $attempt->exam->title }}</h2>
-                        <p class="mt-1 text-sm text-zinc-500">Submitted {{ $attempt->submitted_at?->diffForHumans() ?? 'not submitted' }}</p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <x-badge :text="str($attempt->status->value)->headline()" :color="$attempt->status === ExamAttemptStatus::Graded ? 'green' : ($attempt->status === ExamAttemptStatus::Expired ? 'red' : 'yellow')" light />
-                        <x-button text="Details" :href="route('student.results.show', $attempt)" navigate />
-                    </div>
-                </div>
-            </article>
-        @empty
-            <x-card>
-                <div class="py-10 text-center">
-                    <p class="text-lg font-semibold text-zinc-950">No past results yet</p>
-                    <p class="mt-2 text-sm text-zinc-500">Submitted exams will appear here.</p>
-                </div>
-            </x-card>
-        @endforelse
-    </div>
+    <x-tab selected="graded" scroll-on-mobile>
+        <x-tab.items tab="graded" title="Ready ({{ $this->gradedAttempts()->count() }})">
+            <div class="space-y-3">
+                @forelse ($this->gradedAttempts() as $attempt)
+                    <x-student.result-row :attempt="$attempt" />
+                @empty
+                    <x-student.empty-state title="No marks released yet" description="Graded results will appear here after your lecturer finishes marking." />
+                @endforelse
+            </div>
+        </x-tab.items>
+
+        <x-tab.items tab="pending" title="Waiting Review ({{ $this->pendingAttempts()->count() }})">
+            <div class="space-y-3">
+                @forelse ($this->pendingAttempts() as $attempt)
+                    <x-student.result-row :attempt="$attempt" />
+                @empty
+                    <x-student.empty-state title="No pending reviews" description="Submitted exams that need marking will appear here." />
+                @endforelse
+            </div>
+        </x-tab.items>
+
+        <x-tab.items tab="expired" title="Expired ({{ $this->expiredAttempts()->count() }})">
+            <div class="space-y-3">
+                @forelse ($this->expiredAttempts() as $attempt)
+                    <x-student.result-row :attempt="$attempt" />
+                @empty
+                    <x-student.empty-state title="No expired attempts" description="Attempts that passed the server time limit will appear here." />
+                @endforelse
+            </div>
+        </x-tab.items>
+    </x-tab>
 </div>

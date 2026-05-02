@@ -7,8 +7,7 @@ use App\Services\Exams\ExamAttemptService;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('layouts.student')] class extends Component
-{
+new #[Layout('layouts.exam-attempt')] class extends Component {
     public ExamAttempt $attempt;
     public int $current = 0;
     public array $answers = [];
@@ -37,17 +36,33 @@ new #[Layout('layouts.student')] class extends Component
 
     public function updatedAnswers(mixed $value, string $questionId): void
     {
-        app(ExamAttemptService::class)->saveAnswer($this->attempt, (int) $questionId, $value);
+        $this->saveAnswer((int) $questionId);
+    }
+
+    public function saveAnswer(int $questionId): void
+    {
+        app(ExamAttemptService::class)->saveAnswer($this->attempt, $questionId, $this->answers[$questionId] ?? null);
         $this->savedAt = now()->format('g:i A');
+    }
+
+    public function saveCurrentAnswer(): void
+    {
+        $question = $this->question();
+
+        if ($question !== null) {
+            $this->saveAnswer($question->id);
+        }
     }
 
     public function previous(): void
     {
+        $this->saveCurrentAnswer();
         $this->current = max(0, $this->current - 1);
     }
 
     public function next(): void
     {
+        $this->saveCurrentAnswer();
         $this->current = min($this->questions()->count() - 1, $this->current + 1);
     }
 
@@ -58,6 +73,7 @@ new #[Layout('layouts.student')] class extends Component
 
     public function review(): void
     {
+        $this->saveCurrentAnswer();
         $this->redirectRoute('student.attempts.review', $this->attempt, navigate: true);
     }
 
@@ -82,32 +98,29 @@ new #[Layout('layouts.student')] class extends Component
 
     public function answeredCount(): int
     {
-        return collect($this->answers)->filter(fn ($answer) => filled($answer))->count();
+        return collect($this->answers)->filter(fn($answer) => filled($answer))->count();
     }
 }; ?>
 
 @php($question = $this->question())
 
-<div
-    class="px-3 py-4 sm:px-5 lg:px-6"
-    x-data="{
-        remaining: Math.max(0, Math.floor((new Date('{{ $attempt->expires_at->toIso8601String() }}') - new Date()) / 1000)),
-        init() {
-            const timer = setInterval(() => {
-                this.remaining = Math.max(0, this.remaining - 1);
-                if (this.remaining === 0) {
-                    clearInterval(timer);
-                    $wire.expire();
-                }
-            }, 1000);
-        },
-        time() {
-            const minutes = Math.floor(this.remaining / 60).toString().padStart(2, '0');
-            const seconds = (this.remaining % 60).toString().padStart(2, '0');
-            return `${minutes}:${seconds}`;
-        }
-    }"
->
+<div class="px-3 py-4 sm:px-5 lg:px-6  min-h-screen" x-data="{
+    remaining: Math.max(0, Math.floor((new Date('{{ $attempt->expires_at->toIso8601String() }}') - new Date()) / 1000)),
+    init() {
+        const timer = setInterval(() => {
+            this.remaining = Math.max(0, this.remaining - 1);
+            if (this.remaining === 0) {
+                clearInterval(timer);
+                $wire.expire();
+            }
+        }, 1000);
+    },
+    time() {
+        const minutes = Math.floor(this.remaining / 60).toString().padStart(2, '0');
+        const seconds = (this.remaining % 60).toString().padStart(2, '0');
+        return `${minutes}:${seconds}`;
+    }
+}">
     <div class="mb-3 flex items-center justify-between border-b border-zinc-200 bg-white px-3 py-3 shadow-sm">
         <div class="min-w-0">
             <p class="truncate text-sm font-semibold text-zinc-950">{{ $attempt->exam->title }}</p>
@@ -116,7 +129,7 @@ new #[Layout('layouts.student')] class extends Component
         <x-button text="Review & Submit" icon="paper-airplane" sm wire:click="review" loading="review" />
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-[180px_minmax(0,1fr)_210px]">
+    <div class="grid gap-4 lg:grid-cols-[180px_minmax(0,1fr)_210px] min-h-[calc(100vh-160px)]">
         <aside class="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm">
             <div class="mb-3 flex items-center justify-between text-xs text-zinc-500">
                 <span>Questions</span>
@@ -127,19 +140,18 @@ new #[Layout('layouts.student')] class extends Component
                 @foreach ($this->questions() as $paletteQuestion)
                     @php($isAnswered = filled($answers[$paletteQuestion->id] ?? null))
                     @php($isCurrent = $loop->index === $current)
-                    <button
-                        type="button"
-                        wire:click="goToQuestion({{ $loop->index }})"
-                        class="h-9 rounded-md border text-xs font-semibold transition {{ $isCurrent ? 'border-zinc-950 bg-zinc-950 text-white' : ($isAnswered ? 'border-green-300 bg-green-50 text-green-800' : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-400') }}"
-                    >
+                    <button type="button" wire:click="goToQuestion({{ $loop->index }})"
+                        class="h-9 rounded-md border text-xs font-semibold transition {{ $isCurrent ? 'border-zinc-950 bg-zinc-950 text-white' : ($isAnswered ? 'border-green-300 bg-green-50 text-green-800' : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-400') }}">
                         {{ $loop->iteration }}
                     </button>
                 @endforeach
             </div>
 
             <div class="mt-4 space-y-2 text-xs text-zinc-500">
-                <div class="flex items-center gap-2"><span class="h-3 w-3 rounded border border-green-300 bg-green-50"></span> Answered</div>
-                <div class="flex items-center gap-2"><span class="h-3 w-3 rounded border border-zinc-200 bg-white"></span> Not answered</div>
+                <div class="flex items-center gap-2"><span
+                        class="h-3 w-3 rounded border border-green-300 bg-green-50"></span> Answered</div>
+                <div class="flex items-center gap-2"><span
+                        class="h-3 w-3 rounded border border-zinc-200 bg-white"></span> Not answered</div>
                 <div class="flex items-center gap-2"><span class="h-3 w-3 rounded bg-zinc-950"></span> Current</div>
             </div>
         </aside>
@@ -152,36 +164,37 @@ new #[Layout('layouts.student')] class extends Component
                         <span>{{ $savedAt ? "Saved {$savedAt}" : 'Autosave ready' }}</span>
                     </div>
                     <div class="mt-2 h-2 rounded-full bg-zinc-200">
-                        <div class="h-2 rounded-full bg-zinc-950 transition-all" style="width: {{ (($current + 1) / max(1, $this->questions()->count())) * 100 }}%"></div>
+                        <div class="h-2 rounded-full bg-zinc-950 transition-all"
+                            style="width: {{ (($current + 1) / max(1, $this->questions()->count())) * 100 }}%"></div>
                     </div>
                 </div>
 
                 <div class="space-y-6">
                     <div>
                         <x-badge :text="$question->type === QuestionType::MultipleChoice ? 'Multiple choice' : 'Open text'" color="gray" light />
-                        <h2 class="mt-4 text-xl font-semibold leading-8 text-zinc-950 sm:text-2xl">{{ $question->prompt }}</h2>
-                        <p class="mt-2 text-sm text-zinc-500">{{ $question->points }} point{{ $question->points === 1 ? '' : 's' }}</p>
+                        <h2 class="mt-4 text-xl font-semibold leading-8 text-zinc-950 sm:text-2xl">
+                            {{ $question->prompt }}</h2>
+                        <p class="mt-2 text-sm text-zinc-500">{{ $question->points }}
+                            mark{{ $question->points === 1 ? '' : 's' }}</p>
                     </div>
 
                     @if ($question->type === QuestionType::MultipleChoice)
                         <div class="space-y-3">
                             @foreach ($question->options as $option)
-                                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 p-4 transition hover:border-zinc-400 hover:bg-zinc-50">
+                                <label
+                                    class="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 p-4 transition hover:border-zinc-400 hover:bg-zinc-50 hover:dark:border-zinc-700 hover:dark:bg-zinc-800">
                                     <x-radio wire:model.live="answers.{{ $question->id }}" :value="$option->id" />
                                     <span class="text-base leading-7 text-zinc-800">{{ $option->text }}</span>
                                 </label>
                             @endforeach
                         </div>
                     @else
-                        <x-textarea
-                            wire:model.live.debounce.800ms="answers.{{ $question->id }}"
-                            rows="8"
-                            placeholder="Type your answer here..."
-                            resize
-                        />
+                        <x-textarea wire:model="answers.{{ $question->id }}" wire:blur="saveAnswer({{ $question->id }})"
+                            rows="8" placeholder="Type your answer here..." resize />
                     @endif
 
-                    <div class="flex flex-col-reverse gap-3 border-t border-zinc-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div
+                        class="flex flex-col-reverse gap-3 border-t border-zinc-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
                         <x-button text="Previous" outline wire:click="previous" loading="previous" :disabled="$current === 0" />
                         @if ($current + 1 < $this->questions()->count())
                             <x-button text="Save & Next" wire:click="next" loading="next" />
@@ -203,14 +216,20 @@ new #[Layout('layouts.student')] class extends Component
 
             <x-card>
                 <div class="space-y-2 text-sm">
-                    <div class="flex justify-between"><span class="text-zinc-500">Total</span><span class="font-semibold">{{ $this->questions()->count() }}</span></div>
-                    <div class="flex justify-between"><span class="text-zinc-500">Answered</span><span class="font-semibold text-green-700">{{ $this->answeredCount() }}</span></div>
-                    <div class="flex justify-between"><span class="text-zinc-500">Not Answered</span><span class="font-semibold">{{ $this->questions()->count() - $this->answeredCount() }}</span></div>
-                    <div class="flex justify-between"><span class="text-zinc-500">Current</span><span class="font-semibold">{{ $current + 1 }}</span></div>
+                    <div class="flex justify-between"><span class="text-zinc-500">Total</span><span
+                            class="font-semibold">{{ $this->questions()->count() }}</span></div>
+                    <div class="flex justify-between"><span class="text-zinc-500">Answered</span><span
+                            class="font-semibold text-green-700">{{ $this->answeredCount() }}</span></div>
+                    <div class="flex justify-between"><span class="text-zinc-500">Not Answered</span><span
+                            class="font-semibold">{{ $this->questions()->count() - $this->answeredCount() }}</span>
+                    </div>
+                    <div class="flex justify-between"><span class="text-zinc-500">Current</span><span
+                            class="font-semibold">{{ $current + 1 }}</span></div>
                 </div>
             </x-card>
 
-            <x-button text="Review & Submit" icon="paper-airplane" wire:click="review" loading="review" class="w-full" />
+            <x-button text="Review & Submit" icon="paper-airplane" wire:click="review" loading="review"
+                class="w-full" />
         </aside>
     </div>
 </div>

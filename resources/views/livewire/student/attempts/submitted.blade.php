@@ -5,8 +5,7 @@ use App\Models\ExamAttempt;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('layouts.student')] class extends Component
-{
+new #[Layout('layouts.exam-attempt')] class extends Component {
     public ExamAttempt $attempt;
 
     public function mount(ExamAttempt $attempt): void
@@ -17,10 +16,11 @@ new #[Layout('layouts.student')] class extends Component
     }
 }; ?>
 
-<div class="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8 min-h-screen flex flex-col items-center justify-center">
     <x-card>
         <div class="py-8 text-center">
-            <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full {{ $attempt->status === ExamAttemptStatus::Expired ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' }}">
+            <div
+                class="mx-auto flex h-16 w-16 items-center justify-center rounded-full {{ $attempt->status === ExamAttemptStatus::Expired ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' }}">
                 {{ $attempt->status === ExamAttemptStatus::Expired ? '!' : '✓' }}
             </div>
             <h1 class="mt-6 text-3xl font-semibold text-zinc-950">
@@ -32,7 +32,8 @@ new #[Layout('layouts.student')] class extends Component
                 @elseif ($attempt->status === ExamAttemptStatus::Expired)
                     This attempt was marked expired because it passed the server time limit.
                 @else
-                    Your answers were received. Open-text questions may need lecturer review before the final score is ready.
+                    Your answers were received. Open-text questions may need lecturer review before the final score is
+                    ready.
                 @endif
             </p>
 

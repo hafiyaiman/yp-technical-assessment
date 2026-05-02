@@ -87,7 +87,7 @@ class ExamPublicationService
             }
 
             if ($question->points < 1) {
-                $errors["question_points_{$question->id}"] = __('Each question must be worth at least 1 point.');
+                $errors["question_points_{$question->id}"] = __('Each question must be worth at least 1 mark.');
             }
 
             if ($question->type === QuestionType::MultipleChoice) {

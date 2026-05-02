@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Lecturer\Teaching;
 
+use App\Enums\ExamAttemptStatus;
 use App\Models\SchoolClass;
 use App\Models\TeachingAssignment;
 use Illuminate\Contracts\View\View;
@@ -20,7 +21,10 @@ class Index extends Component
     {
         return TeachingAssignment::query()
             ->with(['schoolClass.students', 'subject'])
-            ->withCount('exams')
+            ->withCount([
+                'exams',
+                'exams as pending_marking_count' => fn ($query) => $query->whereHas('attempts', fn ($query) => $query->where('status', ExamAttemptStatus::Submitted->value)),
+            ])
             ->where('lecturer_id', auth()->id())
             ->orderBy(
                 SchoolClass::query()

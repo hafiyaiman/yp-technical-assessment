@@ -6,16 +6,36 @@ use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\Subjects\Index as AdminSubjectsIndex;
 use App\Livewire\Admin\TeachingAssignments\Index as AdminTeachingAssignmentsIndex;
 use App\Livewire\Admin\Users\Index as AdminUsersIndex;
+use App\Livewire\Lecturer\Exams\Activity as LecturerExamActivity;
 use App\Livewire\Lecturer\Exams\Builder as LecturerExamBuilder;
 use App\Livewire\Lecturer\Exams\Index as LecturerExamsIndex;
+use App\Livewire\Lecturer\Exams\Results as LecturerExamResults;
+use App\Livewire\Lecturer\Exams\Show as LecturerExamShow;
 use App\Livewire\Lecturer\Exams\Submissions as LecturerExamSubmissions;
 use App\Livewire\Lecturer\Teaching\Index as LecturerTeachingIndex;
+use App\Livewire\Lecturer\Teaching\Show as LecturerTeachingShow;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
 Route::view('/', 'welcome');
 
-Route::view('dashboard', 'dashboard')
+Route::get('dashboard', function () {
+    $user = auth()->user();
+
+    if ($user?->hasRole('system-admin')) {
+        return redirect()->route('admin.dashboard');
+    }
+
+    if ($user?->hasRole('lecturer')) {
+        return redirect()->route('lecturer.dashboard');
+    }
+
+    if ($user?->hasRole('student')) {
+        return redirect()->route('student.home');
+    }
+
+    return view('dashboard');
+})
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
@@ -39,14 +59,17 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     Route::middleware('role:lecturer')->prefix('lecturer')->name('lecturer.')->group(function (): void {
         Route::get('my-classes', LecturerTeachingIndex::class)->name('teaching.index');
+        Route::get('my-classes/{assignment}', LecturerTeachingShow::class)->name('teaching.show');
         Route::get('exams', LecturerExamsIndex::class)->name('exams.index');
+        Route::get('exams/{exam}', LecturerExamShow::class)->name('exams.show');
         Route::get('teaching/{assignment}/exams/create', LecturerExamBuilder::class)->name('teaching.exams.create');
         Route::get('exams/{exam}/edit', LecturerExamBuilder::class)->name('exams.edit');
         Route::get('exams/{exam}/submissions', LecturerExamSubmissions::class)->name('exams.submissions');
+        Route::get('exams/{exam}/results', LecturerExamResults::class)->name('exams.results');
+        Route::get('exams/{exam}/activity', LecturerExamActivity::class)->name('exams.activity');
     });
 
     Route::middleware('role:student')->prefix('student')->name('student.')->group(function (): void {
-        Volt::route('dashboard', 'student.home')->name('dashboard');
         Volt::route('home', 'student.home')->name('home');
         Volt::route('exams', 'student.exams.index')->name('exams.index');
         Volt::route('exams/{exam}', 'student.exams.show')->name('exams.show');

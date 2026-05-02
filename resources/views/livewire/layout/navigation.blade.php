@@ -13,7 +13,11 @@ new class extends Component {
 
     public function breadcrumbs(): array
     {
-        $items = [['label' => 'Dashboard', 'link' => route('dashboard'), 'icon' => 'home']];
+        $items = [[
+            'label' => auth()->user()->hasRole('student') ? 'Home' : 'Dashboard',
+            'link' => auth()->user()->hasRole('student') ? route('student.home') : route('dashboard'),
+            'icon' => 'home',
+        ]];
 
         if (request()->routeIs('admin.users.*')) {
             return [...$items, ['label' => 'Users']];
@@ -35,6 +39,16 @@ new class extends Component {
             return [...$items, ['label' => 'Teaching Assignments']];
         }
 
+        if (request()->routeIs('lecturer.teaching.show')) {
+            $assignment = request()->route('assignment');
+
+            return [
+                ...$items,
+                ['label' => 'My Classes', 'link' => route('lecturer.teaching.index')],
+                ['label' => $assignment?->schoolClass?->name.' / '.$assignment?->subject?->name],
+            ];
+        }
+
         if (request()->routeIs('lecturer.teaching.index')) {
             return [...$items, ['label' => 'My Classes']];
         }
@@ -43,16 +57,50 @@ new class extends Component {
             return [...$items, ['label' => 'Exams', 'link' => route('lecturer.exams.index')], ['label' => 'Create']];
         }
 
+        if (request()->routeIs('lecturer.exams.show')) {
+            $exam = request()->route('exam');
+
+            return [...$items, ['label' => 'Exams', 'link' => route('lecturer.exams.index')], ['label' => $exam?->title]];
+        }
+
         if (request()->routeIs('lecturer.exams.edit')) {
-            return [...$items, ['label' => 'Exams', 'link' => route('lecturer.exams.index')], ['label' => 'Builder']];
+            $exam = request()->route('exam');
+
+            return [...$items, ['label' => 'Exams', 'link' => route('lecturer.exams.index')], ['label' => $exam?->title, 'link' => route('lecturer.exams.show', $exam)], ['label' => 'Builder']];
         }
 
         if (request()->routeIs('lecturer.exams.submissions')) {
-            return [...$items, ['label' => 'Exams', 'link' => route('lecturer.exams.index')], ['label' => 'Submissions']];
+            $exam = request()->route('exam');
+
+            return [...$items, ['label' => 'Exams', 'link' => route('lecturer.exams.index')], ['label' => $exam?->title, 'link' => route('lecturer.exams.show', $exam)], ['label' => 'Submissions']];
+        }
+
+        if (request()->routeIs('lecturer.exams.results')) {
+            $exam = request()->route('exam');
+
+            return [...$items, ['label' => 'Exams', 'link' => route('lecturer.exams.index')], ['label' => $exam?->title, 'link' => route('lecturer.exams.show', $exam)], ['label' => 'Results']];
+        }
+
+        if (request()->routeIs('lecturer.exams.activity')) {
+            $exam = request()->route('exam');
+
+            return [...$items, ['label' => 'Exams', 'link' => route('lecturer.exams.index')], ['label' => $exam?->title, 'link' => route('lecturer.exams.show', $exam)], ['label' => 'Activity History']];
         }
 
         if (request()->routeIs('lecturer.exams.*')) {
             return [...$items, ['label' => 'Exams']];
+        }
+
+        if (request()->routeIs('student.exams.*')) {
+            return [...$items, ['label' => 'Exam']];
+        }
+
+        if (request()->routeIs('student.attempts.*')) {
+            return [...$items, ['label' => 'Exam', 'link' => route('student.exams.index')], ['label' => 'Attempt']];
+        }
+
+        if (request()->routeIs('student.results.*')) {
+            return [...$items, ['label' => 'Results']];
         }
 
         if (request()->routeIs('profile')) {
@@ -75,7 +123,7 @@ new class extends Component {
             </div>
         </x-slot:brand>
 
-        <x-side-bar.item text="Dashboard" :href="route(
+        <x-side-bar.item :text="auth()->user()->hasRole('student') ? 'Home' : 'Dashboard'" :href="route(
             auth()->user()->hasRole('system-admin')
                 ? 'admin.dashboard'
                 : (auth()->user()->hasRole('lecturer')
@@ -85,7 +133,6 @@ new class extends Component {
             'dashboard',
             'admin.dashboard',
             'lecturer.dashboard',
-            'student.dashboard',
             'student.home',
         )" wire:navigate />
 
@@ -99,17 +146,15 @@ new class extends Component {
 
         @if (auth()->user()->hasPermission('manage-exams'))
             <x-side-bar.separator text="Lecturer" />
-            <x-side-bar.item text="My Classes" :href="route('lecturer.teaching.index')" icon="academic-cap" :current="request()->routeIs('lecturer.teaching.*')" wire:navigate />
-            <x-side-bar.item text="Exams" :href="route('lecturer.exams.index')" icon="document-text" :current="request()->routeIs('lecturer.exams.*')" wire:navigate />
-            <x-side-bar.item text="Marking" :href="route('lecturer.exams.index')" icon="pencil-square" wire:navigate />
-            <x-side-bar.item text="Results" :href="route('lecturer.exams.index')" icon="chart-bar" wire:navigate />
+            <x-side-bar.item text="My Classes" :href="route('lecturer.teaching.index')" icon="academic-cap" :current="request()->routeIs('lecturer.teaching.*') &&
+                !request()->routeIs('lecturer.teaching.exams.create')" wire:navigate />
+            <x-side-bar.item text="Exams" :href="route('lecturer.exams.index')" icon="document-text" :current="request()->routeIs('lecturer.exams.*', 'lecturer.teaching.exams.create')" wire:navigate />
         @endif
 
         @if (auth()->user()->hasPermission('take-exams'))
             <x-side-bar.separator text="Student" />
-            <x-side-bar.item text="My Exams" :href="route('student.exams.index')" icon="academic-cap" :current="request()->routeIs('student.exams.*')" wire:navigate />
-            <x-side-bar.item text="Results" :href="route('student.results.index')" icon="chart-bar-square" :current="request()->routeIs('student.results.*')"
-                wire:navigate />
+            <x-side-bar.item text="Exam" :href="route('student.exams.index')" icon="academic-cap" :current="request()->routeIs('student.exams.*', 'student.attempts.*')" wire:navigate />
+            <x-side-bar.item text="Results" :href="route('student.results.index')" icon="chart-bar-square" :current="request()->routeIs('student.results.*')" wire:navigate />
         @endif
 
         <x-slot:footer>

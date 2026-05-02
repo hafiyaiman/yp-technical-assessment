@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Lecturer\Exams;
 
+use App\Enums\ExamAttemptStatus;
 use App\Models\Exam;
 use App\Models\TeachingAssignment;
 use App\Services\AuditLogger;
@@ -23,6 +24,9 @@ class Index extends Component
     public string $assignmentFilter = '';
 
     public string $statusFilter = '';
+    public string $search = '';
+    public bool $modal = false;
+    public string $createSearch = '';
 
     public function mount(): void
     {
@@ -34,9 +38,20 @@ class Index extends Component
         $this->resetPage();
     }
 
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
     public function updatedAssignmentFilter(): void
     {
         $this->resetPage();
+    }
+
+    public function openCreateModal(): void
+    {
+        $this->createSearch = '';
+        $this->modal = true;
     }
 
     public function askPublish(int $id): void
@@ -101,8 +116,13 @@ class Index extends Component
     {
         return Exam::query()
             ->with(['schoolClass', 'subject', 'teachingAssignment'])
-            ->withCount(['questions', 'attempts'])
+            ->withCount([
+                'questions',
+                'attempts',
+                'attempts as pending_marking_count' => fn ($query) => $query->where('status', ExamAttemptStatus::Submitted->value),
+            ])
             ->assignedTo(auth()->user())
+            ->when($this->search !== '', fn ($query) => $query->where('title', 'like', "%{$this->search}%"))
             ->when($this->statusFilter !== '', fn ($query) => $query->where('status', $this->statusFilter))
             ->when($this->assignmentFilter !== '', fn ($query) => $query->where('teaching_assignment_id', $this->assignmentFilter))
             ->latest()
@@ -114,6 +134,31 @@ class Index extends Component
         return TeachingAssignment::query()
             ->with(['schoolClass', 'subject'])
             ->where('lecturer_id', auth()->id())
+            ->latest()
+            ->get();
+    }
+
+    public function createAssignments()
+    {
+        return TeachingAssignment::query()
+            ->with(['schoolClass.students', 'subject'])
+            ->withCount('exams')
+            ->where('lecturer_id', auth()->id())
+            ->when($this->createSearch !== '', function ($query): void {
+                $query->where(function ($query): void {
+                    $query
+                        ->whereHas('schoolClass', function ($query): void {
+                            $query
+                                ->where('name', 'like', "%{$this->createSearch}%")
+                                ->orWhere('code', 'like', "%{$this->createSearch}%");
+                        })
+                        ->orWhereHas('subject', function ($query): void {
+                            $query
+                                ->where('name', 'like', "%{$this->createSearch}%")
+                                ->orWhere('code', 'like', "%{$this->createSearch}%");
+                        });
+                });
+            })
             ->latest()
             ->get();
     }
@@ -132,7 +177,7 @@ class Index extends Component
 
     public function headers(): array
     {
-        return [['index' => 'title', 'label' => 'Exam'], ['index' => 'assignment', 'label' => 'Class / Subject', 'sortable' => false], ['index' => 'status', 'label' => 'Status'], ['index' => 'questions_count', 'label' => 'Questions'], ['index' => 'attempts_count', 'label' => 'Submissions'], ['index' => 'action', 'label' => 'Actions', 'sortable' => false, 'align' => 'center']];
+        return [['index' => 'title', 'label' => 'Exam'], ['index' => 'assignment', 'label' => 'Class / Subject', 'sortable' => false], ['index' => 'status', 'label' => 'Status'], ['index' => 'questions_count', 'label' => 'Questions'], ['index' => 'attempts_count', 'label' => 'Submissions'], ['index' => 'pending_marking_count', 'label' => 'Marking'], ['index' => 'action', 'label' => 'Actions', 'sortable' => false, 'align' => 'center']];
     }
 
     public function render(): View

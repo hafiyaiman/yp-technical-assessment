@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Lecturer\Exams;
 
-use App\Models\AuditLog;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
 use App\Services\AuditLogger;
@@ -67,17 +66,6 @@ class Submissions extends Component
             ->attempts()
             ->with(['student', 'answers.question', 'answers.selectedOption'])
             ->latest()
-            ->get();
-    }
-
-    public function activityLogs()
-    {
-        return AuditLog::query()
-            ->with('actor')
-            ->where('subject_type', $this->exam->getMorphClass())
-            ->where('subject_id', $this->exam->id)
-            ->latest()
-            ->limit(10)
             ->get();
     }
 

@@ -23,7 +23,7 @@ class OpenTextGradingService
 
         if ($points < 0 || $points > $answer->question->points) {
             throw ValidationException::withMessages([
-                "points.{$answer->id}" => __('Awarded points must be within the question point value.'),
+                "points.{$answer->id}" => __('Awarded marks must be within the question mark value.'),
             ]);
         }
 

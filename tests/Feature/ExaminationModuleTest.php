@@ -404,7 +404,7 @@ test('lecturer can build a draft exam with multiple-choice and open-text questio
     expect($exam->questions()->where('type', QuestionType::MultipleChoice->value)->firstOrFail()->options()->where('is_correct', true)->count())->toBe(1);
     expect(AuditLog::query()->where('action', 'exam.created')->where('subject_id', $exam->id)->exists())->toBeTrue();
 
-    Livewire::test('lecturer.exams.builder', ['exam' => $exam])
+    Livewire::test('lecturer.exams.activity', ['exam' => $exam])
         ->assertSee('Activity History')
         ->assertSee('Created draft exam Midterm Paper A.');
 });
@@ -415,6 +415,70 @@ test('lecturer cannot access admin academic setup pages', function (): void {
     $this->actingAs($lecturer)->get(route('admin.classes.index'))->assertForbidden();
     $this->actingAs($lecturer)->get(route('admin.subjects.index'))->assertForbidden();
     $this->actingAs($lecturer)->get(route('admin.users.index'))->assertForbidden();
+});
+
+test('lecturer sidebar only shows class and exam workflow links', function (): void {
+    $lecturer = User::factory()->lecturer()->create();
+
+    $this->actingAs($lecturer)
+        ->get(route('lecturer.teaching.index'))
+        ->assertOk()
+        ->assertSee('My Classes')
+        ->assertSee('Exams')
+        ->assertDontSee('Marking')
+        ->assertDontSee('Results');
+});
+
+test('lecturer can open assigned class detail and only see enrolled class students', function (): void {
+    $fixture = createAssignedExamFixture();
+    $otherStudent = User::factory()->student()->create([
+        'name' => 'Other Class Student',
+        'school_class_id' => SchoolClass::factory()->create()->id,
+    ]);
+
+    $this->actingAs($fixture['lecturer'])
+        ->get(route('lecturer.teaching.show', $fixture['assignment']))
+        ->assertOk()
+        ->assertSee($fixture['student']->name)
+        ->assertSee($fixture['exam']->title)
+        ->assertDontSee($otherStudent->name);
+});
+
+test('lecturer can open owned exam overview and results only', function (): void {
+    $fixture = createAssignedExamFixture();
+    $otherLecturer = User::factory()->lecturer()->create();
+
+    $this->actingAs($fixture['lecturer']);
+
+    $this->get(route('lecturer.exams.show', $fixture['exam']))
+        ->assertOk()
+        ->assertSee($fixture['exam']->title)
+        ->assertSee('Exam Details')
+        ->assertSee('Activity History');
+
+    $this->get(route('lecturer.exams.results', $fixture['exam']))
+        ->assertOk()
+        ->assertSee('Student Results');
+
+    $this->get(route('lecturer.exams.activity', $fixture['exam']))
+        ->assertOk()
+        ->assertSee('Activity History');
+
+    $this->actingAs($otherLecturer)
+        ->get(route('lecturer.teaching.show', $fixture['assignment']))
+        ->assertForbidden();
+
+    $this->actingAs($otherLecturer)
+        ->get(route('lecturer.exams.show', $fixture['exam']))
+        ->assertForbidden();
+
+    $this->actingAs($otherLecturer)
+        ->get(route('lecturer.exams.results', $fixture['exam']))
+        ->assertForbidden();
+
+    $this->actingAs($otherLecturer)
+        ->get(route('lecturer.exams.activity', $fixture['exam']))
+        ->assertForbidden();
 });
 
 test('lecturer sees only assigned exams and cannot manage another lecturer exam', function (): void {
@@ -428,7 +492,57 @@ test('lecturer sees only assigned exams and cannot manage another lecturer exam'
     $this->actingAs($otherLecturer);
 
     Livewire::test('lecturer.exams.index')
+        ->set('search', $fixture['exam']->title)
         ->assertDontSee($fixture['exam']->title);
+});
+
+test('lecturer exams index supports title search and exam scoped actions', function (): void {
+    $fixture = createAssignedExamFixture();
+    $otherExam = Exam::factory()->forAssignment($fixture['assignment'])->published()->create(['title' => 'Hidden Paper']);
+
+    $this->actingAs($fixture['lecturer']);
+
+    Livewire::test('lecturer.exams.index')
+        ->set('search', $fixture['exam']->title)
+        ->assertSee($fixture['exam']->title)
+        ->assertDontSee($otherExam->title)
+        ->assertSee('View Overview')
+        ->assertSee('Submissions')
+        ->assertSee('Results')
+        ->set('search', 'Hidden')
+        ->assertSee($otherExam->title)
+        ->assertDontSee($fixture['exam']->title);
+});
+
+test('lecturer creates exam by choosing an assigned class subject', function (): void {
+    $fixture = createAssignedExamFixture();
+    $otherLecturer = User::factory()->lecturer()->create();
+    $otherClass = SchoolClass::factory()->create(['name' => 'Other Class']);
+    $otherSubject = Subject::factory()->create(['name' => 'Other Subject']);
+    $otherClass->subjects()->attach($otherSubject);
+    TeachingAssignment::factory()->create([
+        'lecturer_id' => $otherLecturer->id,
+        'school_class_id' => $otherClass->id,
+        'subject_id' => $otherSubject->id,
+    ]);
+
+    $this->actingAs($fixture['lecturer']);
+
+    $this->get(route('lecturer.exams.index'))
+        ->assertOk()
+        ->assertSee('Create Exam');
+
+    Livewire::test('lecturer.exams.index')
+        ->call('openCreateModal')
+        ->assertSet('modal', true)
+        ->assertSee('Choose Class &amp; Subject', false)
+        ->assertSee($fixture['class']->name)
+        ->assertSee($fixture['subject']->name)
+        ->assertDontSee('Other Class')
+        ->assertDontSee('Other Subject')
+        ->set('createSearch', $fixture['class']->name)
+        ->assertSee($fixture['class']->name)
+        ->assertDontSee('Other Class');
 });
 
 test('publishing fails when an exam has invalid questions', function (): void {
@@ -486,7 +600,7 @@ test('student gets one attempt with autosaved answers and open-text review', fun
 
     $this->actingAs($fixture['lecturer']);
 
-    Livewire::test('lecturer.exams.submissions', ['exam' => $fixture['exam']])
+    Livewire::test('lecturer.exams.activity', ['exam' => $fixture['exam']])
         ->assertSee('Activity History')
         ->assertSee($fixture['student']->name.' started '.$fixture['exam']->title.'.')
         ->assertSee($fixture['student']->name.' submitted '.$fixture['exam']->title.'.');

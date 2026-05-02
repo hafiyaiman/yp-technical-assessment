@@ -9,6 +9,10 @@
 
     <x-input-error :messages="$errors->get('exam')" />
 
+    @if ($examId)
+        <x-lecturer.exams.tabs :exam="$examId" />
+    @endif
+
     <div class="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <div class="space-y-4">
             <x-card>
@@ -16,7 +20,8 @@
                 <div class="space-y-4">
                     @if ($assignment)
                         <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-                            <p class="text-xs font-semibold uppercase tracking-normal text-zinc-500">Teaching assignment</p>
+                            <p class="text-xs font-semibold uppercase tracking-normal text-zinc-500">Teaching assignment
+                            </p>
                             <p class="mt-2 font-semibold text-zinc-950">{{ $assignment->schoolClass->name }}</p>
                             <p class="text-sm text-zinc-600">{{ $assignment->subject->name }}</p>
                         </div>
@@ -32,70 +37,78 @@
                     <x-input type="datetime-local" wire:model="available_until" label="Available until" />
 
                     <div class="flex gap-2">
-                        <x-button text="Save Draft" icon="document-check" outline wire:click="save" loading="save" class="flex-1" />
-                        <x-button text="Publish" icon="rocket-launch" wire:click="publish" loading="publish" class="flex-1" />
+                        <x-button text="Save Draft" icon="document-check" outline wire:click="save" loading="save"
+                            class="flex-1" />
+                        <x-button text="Publish" icon="rocket-launch" wire:click="publish" loading="publish"
+                            class="flex-1" />
                     </div>
                 </div>
             </x-card>
 
-            @if ($examId)
-                <x-lecturer.exams.activity-log :logs="$this->activityLogs()" />
-            @endif
         </div>
 
         <div class="space-y-4">
             <div class="flex flex-wrap gap-2">
                 <x-button text="Add Multiple Choice" icon="list-bullet" outline
                     wire:click="addQuestion('multiple_choice')" loading="addQuestion" />
-                <x-button text="Add Open Text" icon="pencil-square" outline wire:click="addQuestion('open_text')" loading="addQuestion" />
+                <x-button text="Add Open Text" icon="pencil-square" outline wire:click="addQuestion('open_text')"
+                    loading="addQuestion" />
             </div>
 
-            @foreach ($questions as $questionIndex => $question)
-                <x-card wire:key="question-{{ $questionIndex }}">
-                    <div class="flex items-start justify-between gap-4">
-                        <div>
-                            <x-badge text="Question {{ $questionIndex + 1 }}" color="gray" light />
-                            <x-badge :text="$question['type'] === 'multiple_choice' ? 'Multiple choice' : 'Open text'" color="blue" light />
-                        </div>
-                        <x-button text="Remove" xs color="red" outline
-                            wire:click="removeQuestion({{ $questionIndex }})" loading="removeQuestion" />
-                    </div>
-
-                    <div class="mt-4 grid gap-4">
-                        <x-select.styled wire:model.live="questions.{{ $questionIndex }}.type" label="Question type">
-                            <option value="multiple_choice">Multiple choice</option>
-                            <option value="open_text">Open text</option>
-                        </x-select.styled>
-
-                        <x-textarea wire:model="questions.{{ $questionIndex }}.prompt" label="Prompt" resize-auto />
-                        <x-number wire:model="questions.{{ $questionIndex }}.points" label="Points" :min="1"
-                            :max="100" />
-
-                        @if ($question['type'] === 'multiple_choice')
-                            <div class="space-y-3">
-                                <div class="flex items-center justify-between">
-                                    <p class="text-sm font-semibold text-zinc-900">Options</p>
-                                    <x-button text="Add Option" xs outline
-                                        wire:click="addOption({{ $questionIndex }})" loading="addOption" />
+            <x-accordion multiple>
+                @foreach ($questions as $questionIndex => $question)
+                    <x-accordion.items id="question-{{ $questionIndex }}"
+                        title="Question {{ $questionIndex + 1 }} - {{ $question['type'] === 'multiple_choice' ? 'Multiple choice' : 'Open text' }}"
+                        wire:key="question-{{ $questionIndex }}">
+                        <div class="space-y-4">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex flex-wrap gap-2">
+                                    <x-badge text="Question {{ $questionIndex + 1 }}" color="gray" light />
+                                    <x-badge :text="$question['type'] === 'multiple_choice' ? 'Multiple choice' : 'Open text'" color="blue" light />
                                 </div>
-
-                                @foreach ($question['options'] as $optionIndex => $option)
-                                    <div class="grid gap-3 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center"
-                                        wire:key="question-{{ $questionIndex }}-option-{{ $optionIndex }}">
-                                        <x-radio wire:model="questions.{{ $questionIndex }}.correct_option"
-                                            value="{{ $optionIndex }}" label="Correct" sm />
-                                        <x-input
-                                            wire:model="questions.{{ $questionIndex }}.options.{{ $optionIndex }}.text"
-                                            placeholder="Option text" />
-                                        <x-button.circle icon="trash" color="red" outline
-                                            wire:click="removeOption({{ $questionIndex }}, {{ $optionIndex }})" loading="removeOption" />
-                                    </div>
-                                @endforeach
+                                <x-button text="Remove" xs color="red" outline
+                                    wire:click="removeQuestion({{ $questionIndex }})" loading="removeQuestion" />
                             </div>
-                        @endif
-                    </div>
-                </x-card>
-            @endforeach
+
+                            <div class="grid gap-4">
+                                <x-select.styled wire:model.live="questions.{{ $questionIndex }}.type"
+                                    label="Question type" :options="collect([
+                                        ['label' => 'Multiple choice', 'value' => 'multiple_choice'],
+                                        ['label' => 'Open text', 'value' => 'open_text'],
+                                    ])" />
+                                <x-textarea wire:model="questions.{{ $questionIndex }}.prompt" label="Prompt"
+                                    resize-auto />
+                                <x-number wire:model="questions.{{ $questionIndex }}.points" label="Marks"
+                                    :min="1" :max="100" />
+
+                                @if ($question['type'] === 'multiple_choice')
+                                    <div class="space-y-3">
+                                        <div class="flex items-center justify-between">
+                                            <p class="text-sm font-semibold text-zinc-900 dark:text-white">Options</p>
+                                            <x-button text="Add Option" xs outline
+                                                wire:click="addOption({{ $questionIndex }})" loading="addOption" />
+                                        </div>
+
+                                        @foreach ($question['options'] as $optionIndex => $option)
+                                            <div class="grid gap-3 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center"
+                                                wire:key="question-{{ $questionIndex }}-option-{{ $optionIndex }}">
+                                                <x-radio wire:model="questions.{{ $questionIndex }}.correct_option"
+                                                    value="{{ $optionIndex }}" label="Correct" sm />
+                                                <x-input
+                                                    wire:model="questions.{{ $questionIndex }}.options.{{ $optionIndex }}.text"
+                                                    placeholder="Option text" />
+                                                <x-button.circle icon="trash" color="red" outline
+                                                    wire:click="removeOption({{ $questionIndex }}, {{ $optionIndex }})"
+                                                    loading="removeOption" />
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </x-accordion.items>
+                @endforeach
+            </x-accordion>
         </div>
     </div>
 </div>

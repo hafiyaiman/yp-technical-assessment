@@ -6,7 +6,7 @@ use App\Services\Exams\ExamAttemptService;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('layouts.student')] class extends Component
+new #[Layout('layouts.app')] class extends Component
 {
     public Exam $exam;
 

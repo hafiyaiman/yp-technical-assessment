@@ -4,7 +4,6 @@ namespace App\Livewire\Lecturer\Exams;
 
 use App\Enums\ExamStatus;
 use App\Enums\QuestionType;
-use App\Models\AuditLog;
 use App\Models\Exam;
 use App\Models\Question;
 use App\Models\QuestionOption;
@@ -248,21 +247,6 @@ class Builder extends Component
                 ->with(['schoolClass', 'subject'])
                 ->find($this->teaching_assignment_id)
             : null;
-    }
-
-    public function activityLogs()
-    {
-        if ($this->examId === null) {
-            return collect();
-        }
-
-        return AuditLog::query()
-            ->with('actor')
-            ->where('subject_type', (new Exam())->getMorphClass())
-            ->where('subject_id', $this->examId)
-            ->latest()
-            ->limit(8)
-            ->get();
     }
 
     public function render(): View

@@ -11,8 +11,7 @@ use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
 use TallStackUi\Traits\Interactions;
 
-new #[Layout('layouts.guest')] class extends Component
-{
+new #[Layout('layouts.guest')] class extends Component {
     use Interactions;
 
     #[Validate('required|digits:6')]
@@ -20,7 +19,7 @@ new #[Layout('layouts.guest')] class extends Component
 
     public function mount(): void
     {
-        if (! session()->has(LoginOtpService::SESSION_USER_ID)) {
+        if (!session()->has(LoginOtpService::SESSION_USER_ID)) {
             $this->redirect(route('login'), navigate: true);
         }
     }
@@ -31,11 +30,7 @@ new #[Layout('layouts.guest')] class extends Component
 
         $userId = session(LoginOtpService::SESSION_USER_ID);
 
-        $otp = LoginOtp::query()
-            ->where('user_id', $userId)
-            ->whereNull('consumed_at')
-            ->latest()
-            ->first();
+        $otp = LoginOtp::query()->where('user_id', $userId)->whereNull('consumed_at')->latest()->first();
 
         if ($otp === null || $otp->isExpired() || $otp->attempts >= 5) {
             $this->clearPendingLogin();
@@ -45,7 +40,7 @@ new #[Layout('layouts.guest')] class extends Component
             ]);
         }
 
-        if (! $otp->matches($this->code)) {
+        if (!$otp->matches($this->code)) {
             $otp->increment('attempts');
 
             throw ValidationException::withMessages([
@@ -83,33 +78,30 @@ new #[Layout('layouts.guest')] class extends Component
 
     private function clearPendingLogin(): void
     {
-        session()->forget([
-            LoginOtpService::SESSION_USER_ID,
-            LoginOtpService::SESSION_REMEMBER,
-        ]);
+        session()->forget([LoginOtpService::SESSION_USER_ID, LoginOtpService::SESSION_REMEMBER]);
     }
 }; ?>
 
 <div>
     <form wire:submit="verify">
-        <x-pin
-            wire:model.live="code"
-            label="{{ __('Verification code') }}"
-            hint="{{ __('Enter the 6-digit code sent to your email.') }}"
-            length="6"
-            numbers
-            clear
-            invalidate
-        />
+        <div class="mb-6">
+            <h2 class="text-lg font-medium text-gray-900 text-center">
+                {{ __('Verify your email address') }}
+            </h2>
+            <p class="text-sm text-gray-600 text-center">
+                Enter the verification code sent to your email address.
+            </p>
+        </div>
+        <div class="w-fit justify-center items-center mx-auto">
+            <x-pin wire:model.live="code" length="6" numbers clear invalidate />
+        </div>
+        <div class="pt-6 pb-4 flex justify-center items-center">
+            <x-button type="button" text="{{ __('Resend code') }}" flat sm wire:click="resend" loading="resend" />
+        </div>
 
-        <div class="flex items-center justify-between mt-4">
-            <div class="flex items-center gap-4">
-                <x-button type="button" text="{{ __('Resend code') }}" flat sm wire:click="resend" loading="resend" />
-
-                <x-button type="button" text="{{ __('Cancel login') }}" flat sm wire:click="cancel" loading="cancel" />
-            </div>
-
+        <div class="flex flex-col mt-4 gap-2">
             <x-button type="submit" text="{{ __('Verify') }}" loading="verify" />
+            <x-button type="button" text="{{ __('Cancel') }}" flat wire:click="cancel" loading="cancel" />
         </div>
     </form>
 </div>

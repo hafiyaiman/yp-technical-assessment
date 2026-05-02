@@ -6,7 +6,7 @@ use App\Models\ExamAttempt;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('layouts.student')] class extends Component
+new #[Layout('layouts.app')] class extends Component
 {
     public ExamAttempt $attempt;
 
@@ -57,9 +57,9 @@ new #[Layout('layouts.student')] class extends Component
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <p class="font-semibold text-zinc-950">{{ $loop->iteration }}. {{ $question->prompt }}</p>
-                            <p class="mt-1 text-xs text-zinc-500">{{ $question->points }} point{{ $question->points === 1 ? '' : 's' }}</p>
+                            <p class="mt-1 text-xs text-zinc-500">{{ $question->points }} mark{{ $question->points === 1 ? '' : 's' }}</p>
                         </div>
-                        <x-badge text="{{ $answer?->points_awarded ?? 0 }} pts" color="gray" light />
+                        <x-badge text="{{ $answer?->points_awarded ?? 0 }} marks" color="gray" light />
                     </div>
 
                     <p class="mt-3 rounded-lg bg-zinc-50 px-3 py-2 text-sm leading-6 text-zinc-700">

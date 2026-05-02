@@ -7,7 +7,7 @@
         <x-button text="Back to Exams" icon="arrow-left" flat :href="route('lecturer.exams.index')" navigate />
     </div>
 
-    <x-lecturer.exams.activity-log :logs="$this->activityLogs()" />
+    <x-lecturer.exams.tabs :exam="$exam" />
 
     <div class="space-y-4">
         @forelse ($this->attempts() as $attempt)
@@ -19,7 +19,7 @@
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         <x-badge :text="str($attempt->status->value)->headline()" :color="$attempt->status === \App\Enums\ExamAttemptStatus::Graded ? 'green' : ($attempt->status === \App\Enums\ExamAttemptStatus::Expired ? 'red' : 'yellow')" light />
-                        <x-badge text="{{ $attempt->score }} / {{ $attempt->max_score }} points" color="gray" light />
+                        <x-badge text="{{ $attempt->score }} / {{ $attempt->max_score }} marks" color="gray" light />
                     </div>
                 </div>
 
@@ -29,9 +29,9 @@
                             <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                 <div>
                                     <p class="text-sm font-semibold text-zinc-950">{{ $answer->question->prompt }}</p>
-                                    <p class="mt-1 text-xs text-zinc-500">{{ $answer->question->points }} point question</p>
+                                    <p class="mt-1 text-xs text-zinc-500">{{ $answer->question->points }} mark question</p>
                                 </div>
-                                <x-badge text="{{ $answer->points_awarded }} pts" color="gray" light />
+                                <x-badge text="{{ $answer->points_awarded }} marks" color="gray" light />
                             </div>
 
                             @if ($answer->question->type === \App\Enums\QuestionType::MultipleChoice)
@@ -44,7 +44,7 @@
                                 </p>
 
                                 <div class="mt-4 grid gap-3 md:grid-cols-[160px_minmax(0,1fr)_auto] md:items-end">
-                                    <x-number wire:model="points.{{ $answer->id }}" label="Points" :min="0" :max="$answer->question->points" />
+                                    <x-number wire:model="points.{{ $answer->id }}" label="Marks" :min="0" :max="$answer->question->points" />
                                     <x-input wire:model="feedback.{{ $answer->id }}" label="Feedback" placeholder="Short feedback for the student" />
                                     <x-button text="Save Grade" wire:click="grade({{ $answer->id }})" loading="grade" />
                                 </div>

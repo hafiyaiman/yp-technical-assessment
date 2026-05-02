@@ -5,7 +5,7 @@ use App\Models\Exam;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('layouts.student')] class extends Component
+new #[Layout('layouts.app')] class extends Component
 {
     public function mount(): void
     {
@@ -31,12 +31,47 @@ new #[Layout('layouts.student')] class extends Component
             ->latest('published_at')
             ->get();
     }
+
+    public function newExams()
+    {
+        return $this->exams()->filter(fn (Exam $exam) => $exam->attempts->isEmpty())->values();
+    }
+
+    public function inProgressExams()
+    {
+        return $this->exams()
+            ->filter(fn (Exam $exam) => $exam->attempts->first()?->status === ExamAttemptStatus::InProgress)
+            ->values();
+    }
+
+    public function pendingExams()
+    {
+        return $this->exams()
+            ->filter(fn (Exam $exam) => in_array($exam->attempts->first()?->status, [ExamAttemptStatus::Submitted, ExamAttemptStatus::Expired], true))
+            ->values();
+    }
+
+    public function gradedExams()
+    {
+        return $this->exams()
+            ->filter(fn (Exam $exam) => $exam->attempts->first()?->status === ExamAttemptStatus::Graded)
+            ->values();
+    }
 }; ?>
 
-<div class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+@php
+    $renderExam = function ($exam) {
+        $attempt = $exam->attempts->first();
+        $answered = $attempt?->answers->count() ?? 0;
+        $total = $exam->questions->count();
+        $status = $attempt?->status;
+    };
+@endphp
+
+<div class="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
     <div class="mb-5">
-        <h1 class="text-2xl font-semibold text-zinc-950">Exam</h1>
-        <p class="mt-1 text-sm text-zinc-500">Available tests assigned to your class.</p>
+        <h1 class="text-2xl font-semibold text-zinc-950 dark:text-white">Exam</h1>
+        <p class="mt-1 text-sm text-zinc-500 dark:text-dark-300">Choose a tab to see what needs action and where your results are.</p>
     </div>
 
     @if (auth()->user()->school_class_id === null)
@@ -47,61 +82,46 @@ new #[Layout('layouts.student')] class extends Component
             </div>
         </x-card>
     @else
-        <div class="space-y-3">
-            @forelse ($this->exams() as $exam)
-                @php($attempt = $exam->attempts->first())
-                @php($answered = $attempt?->answers->count() ?? 0)
-                @php($total = $exam->questions->count())
+        <x-tab selected="new" scroll-on-mobile>
+            <x-tab.items tab="new" title="New ({{ $this->newExams()->count() }})">
+                <div class="space-y-3">
+                    @forelse ($this->newExams() as $exam)
+                        <x-student.exam-row :exam="$exam" />
+                    @empty
+                        <x-student.empty-state title="No new exams" description="New exams assigned to your class will appear here." />
+                    @endforelse
+                </div>
+            </x-tab.items>
 
-                <x-card>
-                    <div class="grid gap-5 md:grid-cols-[minmax(0,1fr)_190px_130px_auto] md:items-center">
-                        <div class="min-w-0">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <h2 class="text-lg font-semibold text-zinc-950">{{ $exam->title }}</h2>
-                                @if (! $attempt)
-                                    <x-badge text="New Questions" color="green" light />
-                                @endif
-                            </div>
-                            <p class="mt-2 line-clamp-2 text-sm leading-6 text-zinc-500">{{ $exam->instructions ?: 'Read the instructions before starting.' }}</p>
-                            <p class="mt-1 text-xs text-zinc-400">{{ $exam->subject->name }} - {{ $exam->duration_minutes }} minutes</p>
-                        </div>
+            <x-tab.items tab="progress" title="In Progress ({{ $this->inProgressExams()->count() }})">
+                <div class="space-y-3">
+                    @forelse ($this->inProgressExams() as $exam)
+                        <x-student.exam-row :exam="$exam" />
+                    @empty
+                        <x-student.empty-state title="No exams in progress" description="Started exams that are not submitted yet will appear here." />
+                    @endforelse
+                </div>
+            </x-tab.items>
 
-                        <div>
-                            <p class="text-xs text-zinc-500">Question paper attended</p>
-                            <div class="mt-2 flex items-center gap-2">
-                                <div class="h-2 w-16 rounded-full bg-zinc-200">
-                                    <div class="h-2 rounded-full bg-green-500" style="width: {{ $total > 0 ? ($answered / $total) * 100 : 0 }}%"></div>
-                                </div>
-                                <span class="text-sm font-semibold text-zinc-950">{{ $answered }} of {{ $total }}</span>
-                            </div>
-                        </div>
+            <x-tab.items tab="pending" title="Waiting Review ({{ $this->pendingExams()->count() }})">
+                <div class="space-y-3">
+                    @forelse ($this->pendingExams() as $exam)
+                        <x-student.exam-row :exam="$exam" />
+                    @empty
+                        <x-student.empty-state title="Nothing waiting for review" description="Submitted exams waiting for lecturer marking will appear here." />
+                    @endforelse
+                </div>
+            </x-tab.items>
 
-                        <div>
-                            <p class="text-xs text-zinc-500">Last Updated</p>
-                            <p class="mt-1 text-sm font-semibold text-zinc-950">{{ $exam->updated_at->diffForHumans() }}</p>
-                        </div>
-
-                        <div class="md:text-right">
-                            @if ($attempt?->status === ExamAttemptStatus::InProgress)
-                                <x-button text="Continue" :href="route('student.attempts.show', $attempt)" navigate />
-                            @elseif ($attempt?->status === ExamAttemptStatus::Submitted || $attempt?->status === ExamAttemptStatus::Expired)
-                                <x-button text="Status" outline :href="route('student.attempts.submitted', $attempt)" navigate />
-                            @elseif ($attempt?->status === ExamAttemptStatus::Graded)
-                                <x-button text="Result" :href="route('student.results.show', $attempt)" navigate />
-                            @else
-                                <x-button text="Start" :href="route('student.exams.show', $exam)" navigate />
-                            @endif
-                        </div>
-                    </div>
-                </x-card>
-            @empty
-                <x-card>
-                    <div class="py-10 text-center">
-                        <p class="text-lg font-semibold text-zinc-950">No exams available</p>
-                        <p class="mt-2 text-sm text-zinc-500">Published exams for your class will appear here.</p>
-                    </div>
-                </x-card>
-            @endforelse
-        </div>
+            <x-tab.items tab="results" title="Results Ready ({{ $this->gradedExams()->count() }})">
+                <div class="space-y-3">
+                    @forelse ($this->gradedExams() as $exam)
+                        <x-student.exam-row :exam="$exam" />
+                    @empty
+                        <x-student.empty-state title="No results ready" description="When a lecturer finishes marking, your result will appear here." />
+                    @endforelse
+                </div>
+            </x-tab.items>
+        </x-tab>
     @endif
 </div>

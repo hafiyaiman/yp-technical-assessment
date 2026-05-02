@@ -47,5 +47,9 @@ class AppServiceProvider extends ServiceProvider
             ->block('items.multiple.item', 'dark:text-dark-100 dark:bg-dark-700 dark:ring-dark-600 inline-flex h-6 max-w-44 items-center space-x-1 rounded-lg bg-gray-100 px-2 text-sm font-medium text-gray-600 ring-1 ring-inset ring-gray-200')
             ->block('items.multiple.label.wrapper', 'flex min-w-0 items-center')
             ->block('items.multiple.label', 'truncate text-left');
+
+        TallStackUi::customize()
+            ->card()
+            ->block('wrapper.second', 'dark:bg-dark-700 flex w-full flex-col overflow-hidden rounded-lg bg-white shadow-md dark:shadow-none');
     }
 }

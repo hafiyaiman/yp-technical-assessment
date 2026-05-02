@@ -8,8 +8,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use TallStackUi\Traits\Interactions;
 
-new #[Layout('layouts.student')] class extends Component
-{
+new #[Layout('layouts.exam-attempt')] class extends Component {
     use Interactions;
 
     public ExamAttempt $attempt;
@@ -27,20 +26,17 @@ new #[Layout('layouts.student')] class extends Component
 
     public function askSubmit(): void
     {
-        $this->dialog()
-            ->question('Submit final answers?', 'You will not be able to change your answers after submission.')
-            ->confirm('Submit answers', 'confirmSubmit')
-            ->cancel('Review again')
-            ->persistent()
-            ->send();
+        $this->dialog()->question('Submit final answers?', 'You will not be able to change your answers after submission.')->confirm('Submit answers', 'confirmSubmit')->cancel('Review again')->persistent()->send();
     }
 
     public function confirmSubmit(ExamAttemptService $attempts): void
     {
         $payload = $this->attempt->answers
-            ->mapWithKeys(fn ($answer) => [
-                $answer->question_id => $answer->question_option_id ?? $answer->open_text_answer,
-            ])
+            ->mapWithKeys(
+                fn($answer) => [
+                    $answer->question_id => $answer->question_option_id ?? $answer->open_text_answer,
+                ],
+            )
             ->all();
 
         $attempts->submit($this->attempt, $payload);
@@ -54,11 +50,12 @@ new #[Layout('layouts.student')] class extends Component
     }
 }; ?>
 
-<div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 min-h-screen">
     <div class="mb-6">
         <p class="text-sm text-zinc-500">{{ $attempt->exam->title }}</p>
         <h1 class="mt-1 text-3xl font-semibold text-zinc-950">Review your answers</h1>
-        <p class="mt-2 text-sm text-zinc-600">Check your responses before final submission. You cannot edit after submitting.</p>
+        <p class="mt-2 text-sm text-zinc-600">Check your responses before final submission. You cannot edit after
+            submitting.</p>
     </div>
 
     <x-card>
@@ -69,7 +66,8 @@ new #[Layout('layouts.student')] class extends Component
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <p class="font-semibold text-zinc-950">{{ $loop->iteration }}. {{ $question->prompt }}</p>
-                            <p class="mt-1 text-xs text-zinc-500">{{ $question->points }} point{{ $question->points === 1 ? '' : 's' }}</p>
+                            <p class="mt-1 text-xs text-zinc-500">{{ $question->points }}
+                                mark{{ $question->points === 1 ? '' : 's' }}</p>
                         </div>
                         <x-badge :text="$answer ? 'Answered' : 'Missing'" :color="$answer ? 'green' : 'red'" light />
                     </div>
@@ -85,7 +83,8 @@ new #[Layout('layouts.student')] class extends Component
             @endforeach
         </div>
 
-        <div class="mt-6 flex flex-col-reverse gap-3 border-t border-zinc-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <div
+            class="mt-6 flex flex-col-reverse gap-3 border-t border-zinc-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <x-button text="Back to Questions" outline :href="route('student.attempts.show', $attempt)" navigate />
             <x-button text="Submit Final Answers" icon="paper-airplane" wire:click="askSubmit" loading="askSubmit" />
         </div>
