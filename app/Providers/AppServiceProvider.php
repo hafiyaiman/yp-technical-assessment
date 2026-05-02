@@ -35,8 +35,12 @@ class AppServiceProvider extends ServiceProvider
             ->block('simple.base', 'text-xs font-semibold leading-6 text-zinc-500 whitespace-nowrap overflow-hidden transition-all duration-150 dark:text-dark-300');
 
         TallStackUi::customize()
+            ->floating()
+            ->block('wrapper', 'dark:bg-dark-700 border-dark-200 dark:border-dark-600 absolute z-[80] rounded-lg border bg-white');
+
+        TallStackUi::customize()
             ->select('styled')
-            ->block('floating.class', 'w-96 max-w-[calc(100vw-1rem)] overflow-auto')
+            ->block('floating.class', 'z-[80] w-96 max-w-[calc(100vw-1rem)] overflow-auto')
             ->block('input.content.wrapper.first', 'relative inset-y-0 left-0 flex min-w-0 w-full items-center space-x-2 overflow-hidden rounded-lg pl-2')
             ->block('input.content.wrapper.second', 'flex min-w-0 flex-1 items-center gap-2 overflow-hidden')
             ->block('items.wrapper', 'flex min-w-0 flex-1 gap-1 overflow-hidden')

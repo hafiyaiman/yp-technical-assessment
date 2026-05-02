@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Lecturer\Exams;
 
+use App\Models\AuditLog;
 use App\Models\Exam;
 use App\Models\ExamAnswer;
+use App\Services\AuditLogger;
 use App\Services\Exams\OpenTextGradingService;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
@@ -49,6 +51,13 @@ class Submissions extends Component
             $this->feedback[$answerId] ?? null,
         );
 
+        app(AuditLogger::class)->record(
+            'exam_answer.graded',
+            'Graded '.$answer->attempt->student->name.' answer for '.$this->exam->title.'.',
+            $this->exam,
+            ['attempt_id' => $answer->attempt_id, 'answer_id' => $answer->id],
+        );
+
         $this->toast()->success('Answer graded.')->send();
     }
 
@@ -58,6 +67,17 @@ class Submissions extends Component
             ->attempts()
             ->with(['student', 'answers.question', 'answers.selectedOption'])
             ->latest()
+            ->get();
+    }
+
+    public function activityLogs()
+    {
+        return AuditLog::query()
+            ->with('actor')
+            ->where('subject_type', $this->exam->getMorphClass())
+            ->where('subject_id', $this->exam->id)
+            ->latest()
+            ->limit(10)
             ->get();
     }
 

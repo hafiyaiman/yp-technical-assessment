@@ -4,6 +4,7 @@ namespace App\Livewire\Lecturer\Exams;
 
 use App\Models\Exam;
 use App\Models\TeachingAssignment;
+use App\Services\AuditLogger;
 use App\Services\Exams\ExamPublicationService;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
@@ -87,7 +88,11 @@ class Index extends Component
 
     public function confirmDelete(int $id): void
     {
-        $this->findOwnedExam($id)->delete();
+        $exam = $this->findOwnedExam($id);
+
+        app(AuditLogger::class)->record('exam.deleted', 'Deleted exam '.$exam->title.'.', $exam);
+
+        $exam->delete();
 
         $this->toast()->success('Exam deleted.')->send();
     }

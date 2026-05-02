@@ -3,6 +3,7 @@
 use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamStatus;
 use App\Enums\QuestionType;
+use App\Models\AuditLog;
 use App\Models\Exam;
 use App\Models\Question;
 use App\Models\QuestionOption;
@@ -13,9 +14,9 @@ use App\Models\User;
 use App\Services\Exams\ExamAttemptService;
 use App\Services\Exams\ExamPublicationService;
 use App\Services\Exams\OpenTextGradingService;
-use Illuminate\Validation\ValidationException;
 use App\Notifications\UserInvitation;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Livewire\Volt\Volt;
 
@@ -101,6 +102,86 @@ test('admin can create subjects and classes with student assignments', function 
 
     expect($class->subjects()->whereKey($subject->id)->exists())->toBeTrue();
     expect($student->fresh()->school_class_id)->toBe($class->id);
+});
+
+test('admin dashboard shows setup health and audit logs', function (): void {
+    $admin = User::factory()->systemAdmin()->create();
+
+    $this->actingAs($admin);
+
+    Livewire::test('admin.subjects.index')
+        ->set('name', 'Audit Mathematics')
+        ->set('code', 'AUD-MATH')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(AuditLog::query()->where('action', 'subject.created')->exists())->toBeTrue();
+
+    $this->get(route('admin.dashboard'))
+        ->assertOk()
+        ->assertSee('Setup Health')
+        ->assertSee('Audit Logs')
+        ->assertSee('Created subject Audit Mathematics.');
+});
+
+test('admin can open and filter audit logs page', function (): void {
+    $admin = User::factory()->systemAdmin()->create();
+
+    AuditLog::query()->create([
+        'actor_id' => $admin->id,
+        'action' => 'class.created',
+        'description' => 'Created class Audit Room.',
+    ]);
+
+    AuditLog::query()->create([
+        'actor_id' => $admin->id,
+        'action' => 'subject.created',
+        'description' => 'Created subject Audit Science.',
+    ]);
+
+    $this->actingAs($admin);
+
+    $this->get(route('admin.audit-logs.index'))
+        ->assertOk()
+        ->assertSee('Audit Logs')
+        ->assertSee('Created class Audit Room.')
+        ->assertSee('Created subject Audit Science.');
+
+    Livewire::test('admin.audit-logs.index')
+        ->set('search', 'Room')
+        ->assertSee('Created class Audit Room.')
+        ->assertDontSee('Created subject Audit Science.')
+        ->set('search', '')
+        ->set('actionFilters', ['subject.created'])
+        ->assertSee('Created subject Audit Science.')
+        ->assertDontSee('Created class Audit Room.');
+});
+
+test('class wizard requires details and subjects before moving forward', function (): void {
+    $admin = User::factory()->systemAdmin()->create();
+    $subject = Subject::factory()->create();
+
+    $this->actingAs($admin);
+
+    Livewire::test('admin.classes.index')
+        ->call('nextClassStep')
+        ->assertHasErrors(['name' => 'required', 'code' => 'required'])
+        ->assertSet('classStep', '1')
+        ->set('name', 'Class 4B')
+        ->set('code', 'CLASS-4B')
+        ->call('nextClassStep')
+        ->assertHasNoErrors(['name', 'code'])
+        ->assertSet('classStep', '2')
+        ->call('nextClassStep')
+        ->assertHasErrors(['subjectIds' => 'required'])
+        ->assertSet('classStep', '2')
+        ->set('subjectIds', [$subject->id])
+        ->call('nextClassStep')
+        ->assertHasNoErrors(['subjectIds'])
+        ->assertSet('classStep', '3')
+        ->call('nextClassStep')
+        ->assertHasNoErrors(['studentIds'])
+        ->assertSet('classStep', '4');
 });
 
 test('admin can create lecturer and student users', function (): void {
@@ -321,6 +402,11 @@ test('lecturer can build a draft exam with multiple-choice and open-text questio
     expect($exam->teaching_assignment_id)->toBe($assignment->id);
     expect($exam->questions()->count())->toBe(2);
     expect($exam->questions()->where('type', QuestionType::MultipleChoice->value)->firstOrFail()->options()->where('is_correct', true)->count())->toBe(1);
+    expect(AuditLog::query()->where('action', 'exam.created')->where('subject_id', $exam->id)->exists())->toBeTrue();
+
+    Livewire::test('lecturer.exams.builder', ['exam' => $exam])
+        ->assertSee('Activity History')
+        ->assertSee('Created draft exam Midterm Paper A.');
 });
 
 test('lecturer cannot access admin academic setup pages', function (): void {
@@ -389,12 +475,21 @@ test('student gets one attempt with autosaved answers and open-text review', fun
     expect($submitted->status)->toBe(ExamAttemptStatus::Submitted);
     expect($submitted->score)->toBe(2);
     expect($submitted->max_score)->toBe(5);
+    expect(AuditLog::query()->where('action', 'exam_attempt.started')->where('subject_id', $fixture['exam']->id)->exists())->toBeTrue();
+    expect(AuditLog::query()->where('action', 'exam_attempt.submitted')->where('subject_id', $fixture['exam']->id)->exists())->toBeTrue();
 
     $openAnswer = $submitted->answers->firstWhere('question_id', $fixture['openText']->id);
     $graded = app(OpenTextGradingService::class)->grade($openAnswer, 3, 'Good explanation.');
 
     expect($graded->status)->toBe(ExamAttemptStatus::Graded);
     expect($graded->score)->toBe(5);
+
+    $this->actingAs($fixture['lecturer']);
+
+    Livewire::test('lecturer.exams.submissions', ['exam' => $fixture['exam']])
+        ->assertSee('Activity History')
+        ->assertSee($fixture['student']->name.' started '.$fixture['exam']->title.'.')
+        ->assertSee($fixture['student']->name.' submitted '.$fixture['exam']->title.'.');
 });
 
 test('expired attempts cannot be submitted as valid results', function (): void {

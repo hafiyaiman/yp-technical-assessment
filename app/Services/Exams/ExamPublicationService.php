@@ -5,6 +5,7 @@ namespace App\Services\Exams;
 use App\Enums\ExamStatus;
 use App\Enums\QuestionType;
 use App\Models\Exam;
+use App\Services\AuditLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -23,6 +24,8 @@ class ExamPublicationService
                 'closed_at' => null,
             ]);
 
+            app(AuditLogger::class)->record('exam.published', 'Published exam '.$exam->title.'.', $exam);
+
             return $exam->fresh(['questions.options', 'schoolClass', 'subject']);
         });
     }
@@ -33,6 +36,8 @@ class ExamPublicationService
             'status' => ExamStatus::Closed,
             'closed_at' => now(),
         ]);
+
+        app(AuditLogger::class)->record('exam.closed', 'Closed exam '.$exam->title.'.', $exam);
 
         return $exam->fresh();
     }

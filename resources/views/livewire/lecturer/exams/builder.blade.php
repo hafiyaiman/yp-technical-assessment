@@ -10,38 +10,44 @@
     <x-input-error :messages="$errors->get('exam')" />
 
     <div class="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <x-card>
-            @php($assignment = $this->assignment())
-            <div class="space-y-4">
-                @if ($assignment)
-                    <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-                        <p class="text-xs font-semibold uppercase tracking-normal text-zinc-500">Teaching assignment</p>
-                        <p class="mt-2 font-semibold text-zinc-950">{{ $assignment->schoolClass->name }}</p>
-                        <p class="text-sm text-zinc-600">{{ $assignment->subject->name }}</p>
+        <div class="space-y-4">
+            <x-card>
+                @php($assignment = $this->assignment())
+                <div class="space-y-4">
+                    @if ($assignment)
+                        <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+                            <p class="text-xs font-semibold uppercase tracking-normal text-zinc-500">Teaching assignment</p>
+                            <p class="mt-2 font-semibold text-zinc-950">{{ $assignment->schoolClass->name }}</p>
+                            <p class="text-sm text-zinc-600">{{ $assignment->subject->name }}</p>
+                        </div>
+                    @endif
+
+                    <x-input wire:model="title" label="Exam title" placeholder="Midterm Paper A" />
+                    <x-textarea wire:model="instructions" label="Instructions" resize />
+
+                    <x-number wire:model="duration_minutes" label="Time limit in minutes" :min="1"
+                        :max="240" />
+
+                    <x-input type="datetime-local" wire:model="available_from" label="Available from" />
+                    <x-input type="datetime-local" wire:model="available_until" label="Available until" />
+
+                    <div class="flex gap-2">
+                        <x-button text="Save Draft" icon="document-check" outline wire:click="save" loading="save" class="flex-1" />
+                        <x-button text="Publish" icon="rocket-launch" wire:click="publish" loading="publish" class="flex-1" />
                     </div>
-                @endif
-
-                <x-input wire:model="title" label="Exam title" placeholder="Midterm Paper A" />
-                <x-textarea wire:model="instructions" label="Instructions" resize />
-
-                <x-number wire:model="duration_minutes" label="Time limit in minutes" :min="1"
-                    :max="240" />
-
-                <x-input type="datetime-local" wire:model="available_from" label="Available from" />
-                <x-input type="datetime-local" wire:model="available_until" label="Available until" />
-
-                <div class="flex gap-2">
-                    <x-button text="Save Draft" icon="document-check" outline wire:click="save" class="flex-1" />
-                    <x-button text="Publish" icon="rocket-launch" wire:click="publish" class="flex-1" />
                 </div>
-            </div>
-        </x-card>
+            </x-card>
+
+            @if ($examId)
+                <x-lecturer.exams.activity-log :logs="$this->activityLogs()" />
+            @endif
+        </div>
 
         <div class="space-y-4">
             <div class="flex flex-wrap gap-2">
                 <x-button text="Add Multiple Choice" icon="list-bullet" outline
-                    wire:click="addQuestion('multiple_choice')" />
-                <x-button text="Add Open Text" icon="pencil-square" outline wire:click="addQuestion('open_text')" />
+                    wire:click="addQuestion('multiple_choice')" loading="addQuestion" />
+                <x-button text="Add Open Text" icon="pencil-square" outline wire:click="addQuestion('open_text')" loading="addQuestion" />
             </div>
 
             @foreach ($questions as $questionIndex => $question)
@@ -52,7 +58,7 @@
                             <x-badge :text="$question['type'] === 'multiple_choice' ? 'Multiple choice' : 'Open text'" color="blue" light />
                         </div>
                         <x-button text="Remove" xs color="red" outline
-                            wire:click="removeQuestion({{ $questionIndex }})" />
+                            wire:click="removeQuestion({{ $questionIndex }})" loading="removeQuestion" />
                     </div>
 
                     <div class="mt-4 grid gap-4">
@@ -70,7 +76,7 @@
                                 <div class="flex items-center justify-between">
                                     <p class="text-sm font-semibold text-zinc-900">Options</p>
                                     <x-button text="Add Option" xs outline
-                                        wire:click="addOption({{ $questionIndex }})" />
+                                        wire:click="addOption({{ $questionIndex }})" loading="addOption" />
                                 </div>
 
                                 @foreach ($question['options'] as $optionIndex => $option)
@@ -82,7 +88,7 @@
                                             wire:model="questions.{{ $questionIndex }}.options.{{ $optionIndex }}.text"
                                             placeholder="Option text" />
                                         <x-button.circle icon="trash" color="red" outline
-                                            wire:click="removeOption({{ $questionIndex }}, {{ $optionIndex }})" />
+                                            wire:click="removeOption({{ $questionIndex }}, {{ $optionIndex }})" loading="removeOption" />
                                     </div>
                                 @endforeach
                             </div>

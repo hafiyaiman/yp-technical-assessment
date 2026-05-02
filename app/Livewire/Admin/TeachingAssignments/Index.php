@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\TeachingAssignments;
 use App\Models\SchoolClass;
 use App\Models\TeachingAssignment;
 use App\Models\User;
+use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -76,13 +77,23 @@ class Index extends Component
             throw ValidationException::withMessages(['subject_id' => __('This lecturer is already assigned to that class and subject.')]);
         }
 
-        TeachingAssignment::query()->updateOrCreate(
+        $savingNewAssignment = $this->editingId === null;
+
+        $assignment = TeachingAssignment::query()->updateOrCreate(
             ['id' => $this->editingId],
             [
                 'lecturer_id' => (int) $validated['lecturer_id'],
                 'school_class_id' => (int) $validated['school_class_id'],
                 'subject_id' => (int) $validated['subject_id'],
             ],
+        );
+
+        $assignment->load(['lecturer', 'schoolClass', 'subject']);
+
+        app(AuditLogger::class)->record(
+            $savingNewAssignment ? 'teaching_assignment.created' : 'teaching_assignment.updated',
+            ($savingNewAssignment ? 'Created' : 'Updated').' '.$assignment->lecturer->name.' teaching '.$assignment->subject->name.' for '.$assignment->schoolClass->name.'.',
+            $assignment,
         );
 
         $this->toast()->success('Teaching assignment saved.')->send();
@@ -114,6 +125,14 @@ class Index extends Component
     {
         $assignment = TeachingAssignment::query()->withCount('exams')->findOrFail($id);
         abort_if($assignment->exams_count > 0, 422);
+
+        $assignment->load(['lecturer', 'schoolClass', 'subject']);
+
+        app(AuditLogger::class)->record(
+            'teaching_assignment.deleted',
+            'Deleted '.$assignment->lecturer->name.' teaching '.$assignment->subject->name.' for '.$assignment->schoolClass->name.'.',
+            $assignment,
+        );
 
         $assignment->delete();
         $this->toast()->success('Teaching assignment deleted.')->send();

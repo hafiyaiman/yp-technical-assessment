@@ -8,6 +8,7 @@ use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\QuestionOption;
 use App\Models\User;
+use App\Services\AuditLogger;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -35,7 +36,7 @@ class ExamAttemptService
                 return $attempt->fresh(['exam.questions.options', 'answers']);
             }
 
-            return ExamAttempt::query()->create([
+            $attempt = ExamAttempt::query()->create([
                 'exam_id' => $exam->id,
                 'student_id' => $student->id,
                 'status' => ExamAttemptStatus::InProgress,
@@ -43,7 +44,16 @@ class ExamAttemptService
                 'expires_at' => now()->addMinutes($exam->duration_minutes),
                 'score' => 0,
                 'max_score' => $exam->questions()->sum('points'),
-            ])->fresh(['exam.questions.options', 'answers']);
+            ]);
+
+            app(AuditLogger::class)->record(
+                'exam_attempt.started',
+                $student->name.' started '.$exam->title.'.',
+                $exam,
+                ['attempt_id' => $attempt->id, 'student_id' => $student->id],
+            );
+
+            return $attempt->fresh(['exam.questions.options', 'answers']);
         });
     }
 
@@ -126,6 +136,13 @@ class ExamAttemptService
                     'max_score' => $maxScore,
                 ]);
 
+                app(AuditLogger::class)->record(
+                    'exam_attempt.expired',
+                    $attempt->student->name.' attempt expired for '.$attempt->exam->title.'.',
+                    $attempt->exam,
+                    ['attempt_id' => $attempt->id, 'student_id' => $attempt->student_id],
+                );
+
                 return $attempt->fresh(['answers', 'exam.questions.options']);
             }
 
@@ -181,6 +198,13 @@ class ExamAttemptService
                 'score' => $score,
                 'max_score' => $maxScore,
             ]);
+
+            app(AuditLogger::class)->record(
+                $hasOpenText ? 'exam_attempt.submitted' : 'exam_attempt.auto_graded',
+                $attempt->student->name.' submitted '.$attempt->exam->title.'.',
+                $attempt->exam,
+                ['attempt_id' => $attempt->id, 'student_id' => $attempt->student_id],
+            );
 
             return $attempt->fresh(['answers.question', 'exam.questions.options']);
         });

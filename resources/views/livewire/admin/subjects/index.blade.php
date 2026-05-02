@@ -4,7 +4,7 @@
             <h1 class="text-2xl font-semibold text-zinc-950">Subjects</h1>
             <p class="mt-1 text-sm text-zinc-500">Create reusable subjects that can be attached to classes.</p>
         </div>
-        <x-button text="Create Subject" icon="plus" wire:click="create" />
+        <x-button text="Create Subject" icon="plus" wire:click="create" loading="create" />
     </div>
 
     <x-card>
@@ -50,11 +50,11 @@
                 <x-input wire:model="code" label="Subject code" placeholder="MATH" />
                 <x-textarea wire:model="description" label="Description" />
 
-                <div class="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+                <div class="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-between">
                     <x-button type="button" text="Cancel" color="gray" outline
                         x-on:click="$tsui.close.modal('modal')" />
                     <x-button type="submit" text="{{ $editingId ? 'Update Subject' : 'Create Subject' }}"
-                        icon="check" />
+                        icon="check" loading="save" />
                 </div>
             </form>
         </div>

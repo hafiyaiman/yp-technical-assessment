@@ -41,9 +41,9 @@
         <x-input wire:model.live.debounce.300ms="teachingSearch" label="Find class or subject" icon="magnifying-glass"
             placeholder="Search Class 4A, Mathematics..." />
         <x-button type="button" text="Select Visible" icon="check-circle" color="gray" outline
-            wire:click="selectVisibleTeachingAssignments" />
+            wire:click="selectVisibleTeachingAssignments" loading="selectVisibleTeachingAssignments" />
         <x-button type="button" text="Clear" icon="x-mark" color="gray" flat
-            wire:click="clearTeachingAssignments" />
+            wire:click="clearTeachingAssignments" loading="clearTeachingAssignments" />
     </div>
 
     <x-input-error :messages="$errors->get('teachingAssignmentKeys')" />
@@ -85,8 +85,8 @@
         @endforelse
     </div>
 
-    <div class="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+    <div class="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-between">
         <x-button type="button" text="Cancel" color="gray" outline x-on:click="$tsui.close.modal('modal')" />
-        <x-button type="submit" text="Save Teaching" icon="check" />
+        <x-button type="submit" text="Save Teaching" icon="check" loading="saveTeachingAssignments" />
     </div>
 </form>

@@ -86,7 +86,7 @@ new class extends Component
                     <p class="text-sm mt-2 text-gray-800">
                         {{ __('Your email address is unverified.') }}
 
-                        <x-button type="button" text="{{ __('Click here to re-send the verification email.') }}" flat sm wire:click.prevent="sendVerification" />
+                        <x-button type="button" text="{{ __('Click here to re-send the verification email.') }}" flat sm wire:click.prevent="sendVerification" loading="sendVerification" />
                     </p>
 
                 </div>
@@ -94,7 +94,7 @@ new class extends Component
         </div>
 
         <div class="flex items-center gap-4">
-            <x-button type="submit" text="{{ __('Save') }}" />
+            <x-button type="submit" text="{{ __('Save') }}" loading="updateProfileInformation" />
 
         </div>
     </form>

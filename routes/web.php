@@ -1,6 +1,8 @@
 <?php
 
+use App\Livewire\Admin\AuditLogs\Index as AdminAuditLogsIndex;
 use App\Livewire\Admin\Classes\Index as AdminClassesIndex;
+use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\Subjects\Index as AdminSubjectsIndex;
 use App\Livewire\Admin\TeachingAssignments\Index as AdminTeachingAssignmentsIndex;
 use App\Livewire\Admin\Users\Index as AdminUsersIndex;
@@ -23,10 +25,11 @@ Route::view('profile', 'profile')
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::middleware('role:system-admin')->prefix('admin')->name('admin.')->group(function (): void {
-        Route::view('dashboard', 'dashboard')->name('dashboard');
+        Route::get('dashboard', AdminDashboard::class)->name('dashboard');
         Route::get('users', AdminUsersIndex::class)->name('users.index');
         Route::get('classes', AdminClassesIndex::class)->name('classes.index');
         Route::get('subjects', AdminSubjectsIndex::class)->name('subjects.index');
+        Route::get('audit-logs', AdminAuditLogsIndex::class)->name('audit-logs.index');
         Route::get('teaching-assignments', AdminTeachingAssignmentsIndex::class)->name('teaching-assignments.index');
     });
 

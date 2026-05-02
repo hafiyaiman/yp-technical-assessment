@@ -113,7 +113,7 @@ new #[Layout('layouts.student')] class extends Component
             <p class="truncate text-sm font-semibold text-zinc-950">{{ $attempt->exam->title }}</p>
             <p class="text-xs text-zinc-500">{{ $attempt->exam->subject->name }}</p>
         </div>
-        <x-button text="Review & Submit" icon="paper-airplane" sm wire:click="review" />
+        <x-button text="Review & Submit" icon="paper-airplane" sm wire:click="review" loading="review" />
     </div>
 
     <div class="grid gap-4 lg:grid-cols-[180px_minmax(0,1fr)_210px]">
@@ -182,11 +182,11 @@ new #[Layout('layouts.student')] class extends Component
                     @endif
 
                     <div class="flex flex-col-reverse gap-3 border-t border-zinc-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
-                        <x-button text="Previous" outline wire:click="previous" :disabled="$current === 0" />
+                        <x-button text="Previous" outline wire:click="previous" loading="previous" :disabled="$current === 0" />
                         @if ($current + 1 < $this->questions()->count())
-                            <x-button text="Save & Next" wire:click="next" />
+                            <x-button text="Save & Next" wire:click="next" loading="next" />
                         @else
-                            <x-button text="Review Answers" icon="check-circle" wire:click="review" />
+                            <x-button text="Review Answers" icon="check-circle" wire:click="review" loading="review" />
                         @endif
                     </div>
                 </div>
@@ -210,7 +210,7 @@ new #[Layout('layouts.student')] class extends Component
                 </div>
             </x-card>
 
-            <x-button text="Review & Submit" icon="paper-airplane" wire:click="review" class="w-full" />
+            <x-button text="Review & Submit" icon="paper-airplane" wire:click="review" loading="review" class="w-full" />
         </aside>
     </div>
 </div>

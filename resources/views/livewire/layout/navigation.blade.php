@@ -27,6 +27,10 @@ new class extends Component {
             return [...$items, ['label' => 'Subjects']];
         }
 
+        if (request()->routeIs('admin.audit-logs.*')) {
+            return [...$items, ['label' => 'Audit Logs']];
+        }
+
         if (request()->routeIs('admin.teaching-assignments.*')) {
             return [...$items, ['label' => 'Teaching Assignments']];
         }
@@ -90,6 +94,7 @@ new class extends Component {
             <x-side-bar.item text="Users" :href="route('admin.users.index')" icon="users" :current="request()->routeIs('admin.users.*')" wire:navigate />
             <x-side-bar.item text="Classes" :href="route('admin.classes.index')" icon="building-library" :current="request()->routeIs('admin.classes.*')" wire:navigate />
             <x-side-bar.item text="Subjects" :href="route('admin.subjects.index')" icon="book-open" :current="request()->routeIs('admin.subjects.*')" wire:navigate />
+            <x-side-bar.item text="Audit Logs" :href="route('admin.audit-logs.index')" icon="clipboard-document-list" :current="request()->routeIs('admin.audit-logs.*')" wire:navigate />
         @endif
 
         @if (auth()->user()->hasPermission('manage-exams'))

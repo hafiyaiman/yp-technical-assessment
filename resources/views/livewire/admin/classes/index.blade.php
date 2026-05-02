@@ -4,7 +4,7 @@
             <h1 class="text-2xl font-semibold text-zinc-950">Classes</h1>
             <p class="mt-1 text-sm text-zinc-500 dark:text-dark-300">Group students and assign subjects to each class.</p>
         </div>
-        <x-button text="Create Class" icon="plus" wire:click="create" />
+        <x-button text="Create Class" icon="plus" wire:click="create" loading="create" />
     </div>
 
     <x-card>
@@ -15,8 +15,8 @@
     <x-admin.classes.modal
         :editing-id="$editingId"
         :class-step="$classStep"
-        :subjects="$this->subjects()"
-        :students="$this->students()"
+        :subjects="$this->filteredSubjects()"
+        :students="$this->filteredStudents()"
         :student-ids="$studentIds"
         :subject-ids="$subjectIds"
         :name="$name"

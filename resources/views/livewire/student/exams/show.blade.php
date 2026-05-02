@@ -60,7 +60,7 @@ new #[Layout('layouts.student')] class extends Component
 
             <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <x-button text="Back to Exams" flat :href="route('student.exams.index')" navigate />
-                <x-button text="Start Exam" icon="play" wire:click="start" />
+                <x-button text="Start Exam" icon="play" wire:click="start" loading="start" />
             </div>
         </div>
     </x-card>

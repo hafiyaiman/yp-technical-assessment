@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Classes;
 use App\Models\SchoolClass;
 use App\Models\Subject;
 use App\Models\User;
+use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -24,6 +25,8 @@ class Index extends Component
     public ?int $editingId = null;
     public string $search = '';
     public $subjectFilters = [];
+    public string $subjectSearch = '';
+    public string $studentSearch = '';
     public string $name = '';
     public string $code = '';
     public string $description = '';
@@ -50,11 +53,13 @@ class Index extends Component
             'name' => ['required', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:50', Rule::unique('school_classes', 'code')->ignore($this->editingId)],
             'description' => ['nullable', 'string', 'max:1000'],
-            'subjectIds' => ['array'],
+            'subjectIds' => ['required', 'array', 'min:1'],
             'subjectIds.*' => ['integer', 'exists:subjects,id'],
             'studentIds' => ['array'],
             'studentIds.*' => ['integer', 'exists:users,id'],
-        ]);
+        ], $this->classValidationMessages());
+
+        $savingNewClass = $this->editingId === null;
 
         $class = SchoolClass::query()->updateOrCreate(
             ['id' => $this->editingId],
@@ -79,6 +84,13 @@ class Index extends Component
                 ->update(['school_class_id' => $class->id]);
         }
 
+        app(AuditLogger::class)->record(
+            $savingNewClass ? 'class.created' : 'class.updated',
+            ($savingNewClass ? 'Created' : 'Updated').' class '.$class->name.'.',
+            $class,
+            ['subjects' => $this->subjectIds, 'students' => $this->studentIds],
+        );
+
         $this->toast()->success('Class saved.')->send();
         $this->resetForm();
         $this->modal = false;
@@ -102,12 +114,38 @@ class Index extends Component
 
     public function nextClassStep(): void
     {
+        $this->validateCurrentStep();
+
         $this->classStep = (string) min(4, ((int) $this->classStep) + 1);
     }
 
     public function previousClassStep(): void
     {
         $this->classStep = (string) max(1, ((int) $this->classStep) - 1);
+    }
+
+    private function validateCurrentStep(): void
+    {
+        match ($this->classStep) {
+            '1' => $this->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'code' => ['required', 'string', 'max:50', Rule::unique('school_classes', 'code')->ignore($this->editingId)],
+                'description' => ['nullable', 'string', 'max:1000'],
+            ]),
+            '2' => $this->validate([
+                'subjectIds' => ['required', 'array', 'min:1'],
+                'subjectIds.*' => ['integer', 'exists:subjects,id'],
+            ], $this->classValidationMessages()),
+            default => null,
+        };
+    }
+
+    private function classValidationMessages(): array
+    {
+        return [
+            'subjectIds.required' => 'Please select at least one subject.',
+            'subjectIds.min' => 'Please select at least one subject.',
+        ];
     }
 
     public function askDelete(int $id): void
@@ -123,7 +161,11 @@ class Index extends Component
 
     public function confirmDelete(int $id): void
     {
-        SchoolClass::query()->findOrFail($id)->delete();
+        $class = SchoolClass::query()->findOrFail($id);
+
+        app(AuditLogger::class)->record('class.deleted', 'Deleted class '.$class->name.'.', $class);
+
+        $class->delete();
 
         $this->toast()->success('Class deleted.')->send();
         $this->resetForm();
@@ -131,7 +173,7 @@ class Index extends Component
 
     public function resetForm(): void
     {
-        $this->reset(['editingId', 'name', 'code', 'description', 'subjectIds', 'studentIds']);
+        $this->reset(['editingId', 'name', 'code', 'description', 'subjectSearch', 'studentSearch', 'subjectIds', 'studentIds']);
         $this->classStep = '1';
         $this->resetValidation();
     }
@@ -180,9 +222,39 @@ class Index extends Component
         return Subject::query()->orderBy('name')->get();
     }
 
+    public function filteredSubjects()
+    {
+        return Subject::query()
+            ->when($this->subjectSearch !== '', function ($query): void {
+                $query->where(function ($query): void {
+                    $query
+                        ->where('name', 'like', "%{$this->subjectSearch}%")
+                        ->orWhere('code', 'like', "%{$this->subjectSearch}%");
+                });
+            })
+            ->orderBy('name')
+            ->get();
+    }
+
     public function students()
     {
         return User::query()->whereHas('roles', fn ($query) => $query->where('slug', 'student'))->with('schoolClass')->orderBy('name')->get();
+    }
+
+    public function filteredStudents()
+    {
+        return User::query()
+            ->whereHas('roles', fn ($query) => $query->where('slug', 'student'))
+            ->with('schoolClass')
+            ->when($this->studentSearch !== '', function ($query): void {
+                $query->where(function ($query): void {
+                    $query
+                        ->where('name', 'like', "%{$this->studentSearch}%")
+                        ->orWhere('email', 'like', "%{$this->studentSearch}%");
+                });
+            })
+            ->orderBy('name')
+            ->get();
     }
 
     public function subjectOptions()

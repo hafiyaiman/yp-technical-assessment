@@ -43,7 +43,7 @@ new #[Layout('layouts.guest')] class extends Component
         <x-password wire:model="password" label="{{ __('Password') }}" required autocomplete="current-password" />
 
         <div class="flex justify-end mt-4">
-            <x-button type="submit" text="{{ __('Confirm') }}" />
+            <x-button type="submit" text="{{ __('Confirm') }}" loading="confirmPassword" />
         </div>
     </form>
 </div>

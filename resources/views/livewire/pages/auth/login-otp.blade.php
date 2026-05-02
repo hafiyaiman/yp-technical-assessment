@@ -104,12 +104,12 @@ new #[Layout('layouts.guest')] class extends Component
 
         <div class="flex items-center justify-between mt-4">
             <div class="flex items-center gap-4">
-                <x-button type="button" text="{{ __('Resend code') }}" flat sm wire:click="resend" />
+                <x-button type="button" text="{{ __('Resend code') }}" flat sm wire:click="resend" loading="resend" />
 
-                <x-button type="button" text="{{ __('Cancel login') }}" flat sm wire:click="cancel" />
+                <x-button type="button" text="{{ __('Cancel login') }}" flat sm wire:click="cancel" loading="cancel" />
             </div>
 
-            <x-button type="submit" text="{{ __('Verify') }}" />
+            <x-button type="submit" text="{{ __('Verify') }}" loading="verify" />
         </div>
     </form>
 </div>

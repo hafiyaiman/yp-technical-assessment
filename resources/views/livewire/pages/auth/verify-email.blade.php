@@ -43,8 +43,8 @@ new #[Layout('layouts.guest')] class extends Component
     </div>
 
     <div class="mt-4 flex items-center justify-between">
-        <x-button text="{{ __('Resend Verification Email') }}" wire:click="sendVerification" />
+        <x-button text="{{ __('Resend Verification Email') }}" wire:click="sendVerification" loading="sendVerification" />
 
-        <x-button type="button" text="{{ __('Log Out') }}" flat wire:click="logout" />
+        <x-button type="button" text="{{ __('Log Out') }}" flat wire:click="logout" loading="logout" />
     </div>
 </div>

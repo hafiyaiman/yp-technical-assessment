@@ -89,7 +89,7 @@ new #[Layout('layouts.guest')] class extends Component
         </div>
 
         <div class="flex items-center justify-end mt-4">
-            <x-button type="submit" text="{{ $invitation ? __('Set Password') : __('Reset Password') }}" />
+            <x-button type="submit" text="{{ $invitation ? __('Set Password') : __('Reset Password') }}" loading="resetPassword" />
         </div>
     </form>
 </div>

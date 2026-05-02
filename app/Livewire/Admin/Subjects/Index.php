@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Subjects;
 
 use App\Models\SchoolClass;
 use App\Models\Subject;
+use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -45,13 +46,21 @@ class Index extends Component
             'description' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        Subject::query()->updateOrCreate(
+        $savingNewSubject = $this->editingId === null;
+
+        $subject = Subject::query()->updateOrCreate(
             ['id' => $this->editingId],
             [
                 'name' => $validated['name'],
                 'code' => Str::upper($validated['code']),
                 'description' => $validated['description'] ?: null,
             ],
+        );
+
+        app(AuditLogger::class)->record(
+            $savingNewSubject ? 'subject.created' : 'subject.updated',
+            ($savingNewSubject ? 'Created' : 'Updated').' subject '.$subject->name.'.',
+            $subject,
         );
 
         $this->toast()->success('Subject saved.')->send();
@@ -83,7 +92,11 @@ class Index extends Component
 
     public function confirmDelete(int $id): void
     {
-        Subject::query()->findOrFail($id)->delete();
+        $subject = Subject::query()->findOrFail($id);
+
+        app(AuditLogger::class)->record('subject.deleted', 'Deleted subject '.$subject->name.'.', $subject);
+
+        $subject->delete();
         $this->toast()->success('Subject deleted.')->send();
         $this->resetForm();
     }

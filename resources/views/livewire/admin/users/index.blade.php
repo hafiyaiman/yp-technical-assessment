@@ -4,7 +4,7 @@
             <h1 class="text-2xl font-semibold text-zinc-950">Users</h1>
             <p class="mt-1 text-sm text-zinc-500">Manage admin, lecturer, and student accounts.</p>
         </div>
-        <x-button text="Create User" icon="plus" wire:click="create" />
+        <x-button text="Create User" icon="plus" wire:click="create" loading="create" />
     </div>
 
     <x-card>
@@ -24,6 +24,7 @@
         :email="$email"
         :role="$role"
         :classes="$this->classes()"
+        :role-options="$this->roleOptions()"
         :teaching-assignment-keys="$teachingAssignmentKeys"
         :teaching-groups="$this->classSubjectGroups()"
         :selected-teaching-options="$this->selectedTeachingOptions()"

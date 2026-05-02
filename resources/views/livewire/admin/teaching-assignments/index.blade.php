@@ -4,7 +4,7 @@
             <h1 class="text-2xl font-semibold text-zinc-950">Teaching Assignments</h1>
             <p class="mt-1 text-sm text-zinc-500">Assign lecturers to the class-subject pairs they teach.</p>
         </div>
-        <x-button text="Create Assignment" icon="plus" wire:click="create" />
+        <x-button text="Create Assignment" icon="plus" wire:click="create" loading="create" />
     </div>
 
     <x-card>
@@ -39,7 +39,7 @@
         </x-table>
     </x-card>
 
-    <x-modal wire title="{{ $editingId ? 'Edit Assignment' : 'Create Assignment' }}" size="lg" center>
+    <x-modal wire title="{{ $editingId ? 'Edit Assignment' : 'Create Assignment' }}" size="lg" center persistent>
         <form wire:submit="save" class="space-y-4">
             <x-select.styled wire:model="lecturer_id" label="Lecturer">
                 <option value="">Select lecturer</option>
@@ -62,11 +62,11 @@
                 @endforeach
             </x-select.styled>
 
-            <div class="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+            <div class="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-between">
                 <x-button type="button" text="Cancel" color="gray" outline
                     x-on:click="$tsui.close.modal('modal')" />
                 <x-button type="submit" text="{{ $editingId ? 'Update Assignment' : 'Create Assignment' }}"
-                    icon="check" />
+                    icon="check" loading="save" />
             </div>
         </form>
     </x-modal>

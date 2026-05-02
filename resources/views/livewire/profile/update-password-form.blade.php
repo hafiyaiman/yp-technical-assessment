@@ -64,7 +64,7 @@ new class extends Component
         </div>
 
         <div class="flex items-center gap-4">
-            <x-button type="submit" text="{{ __('Save') }}" />
+            <x-button type="submit" text="{{ __('Save') }}" loading="updatePassword" />
 
         </div>
     </form>

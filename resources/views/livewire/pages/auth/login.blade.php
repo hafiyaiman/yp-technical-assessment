@@ -59,7 +59,7 @@ new #[Layout('layouts.guest')] class extends Component
                 </a>
             @endif
 
-            <x-button type="submit" text="{{ __('Log in') }}" class="ms-3" />
+            <x-button type="submit" text="{{ __('Log in') }}" loading="login" class="ms-3" />
         </div>
     </form>
 </div>

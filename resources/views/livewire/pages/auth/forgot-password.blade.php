@@ -49,7 +49,7 @@ new #[Layout('layouts.guest')] class extends Component
         <x-input wire:model="email" label="{{ __('Email') }}" type="email" required autofocus />
 
         <div class="flex items-center justify-end mt-4">
-            <x-button type="submit" text="{{ __('Email Password Reset Link') }}" />
+            <x-button type="submit" text="{{ __('Email Password Reset Link') }}" loading="sendPasswordResetLink" />
         </div>
     </form>
 </div>

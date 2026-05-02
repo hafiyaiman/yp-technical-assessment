@@ -8,6 +8,7 @@ use App\Models\Subject;
 use App\Models\TeachingAssignment;
 use App\Models\User;
 use App\Notifications\UserInvitation;
+use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -138,6 +139,13 @@ class Index extends Component
             'school_class_id' => filled($validated['school_class_id']) ? (int) $validated['school_class_id'] : null,
         ]);
 
+        app(AuditLogger::class)->record(
+            'student.class_assigned',
+            'Updated class assignment for '.$user->name.'.',
+            $user,
+            ['school_class_id' => $user->school_class_id],
+        );
+
         $this->toast()->success('Class assignment saved.')->send();
         $this->resetForm();
         $this->modal = false;
@@ -186,6 +194,13 @@ class Index extends Component
             });
         });
 
+        app(AuditLogger::class)->record(
+            'lecturer.teaching_synced',
+            'Updated teaching assignments for '.$user->name.'.',
+            $user,
+            ['assignments' => $selectedKeys->all()],
+        );
+
         $this->toast()->success('Teaching assignments saved.')->send();
         $this->resetForm();
         $this->modal = false;
@@ -222,6 +237,13 @@ class Index extends Component
             $user->notify(new UserInvitation(Password::createToken($user)));
         }
 
+        app(AuditLogger::class)->record(
+            $creating ? 'user.invited' : 'user.updated',
+            ($creating ? 'Invited' : 'Updated').' '.$user->name.' as '.$role->name.'.',
+            $user,
+            ['role' => $role->slug],
+        );
+
         $this->toast()
             ->success($creating ? 'User invited.' : 'User saved.', $creating ? 'An invitation link has been sent to their email.' : null)
             ->send();
@@ -250,6 +272,8 @@ class Index extends Component
     {
         $user = User::query()->findOrFail($id);
         abort_if($user->is(auth()->user()), 403);
+
+        app(AuditLogger::class)->record('user.deleted', 'Deleted user '.$user->name.'.', $user);
 
         $user->delete();
         $this->toast()->success('User deleted.')->send();

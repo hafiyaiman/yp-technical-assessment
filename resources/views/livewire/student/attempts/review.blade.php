@@ -87,7 +87,7 @@ new #[Layout('layouts.student')] class extends Component
 
         <div class="mt-6 flex flex-col-reverse gap-3 border-t border-zinc-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <x-button text="Back to Questions" outline :href="route('student.attempts.show', $attempt)" navigate />
-            <x-button text="Submit Final Answers" icon="paper-airplane" wire:click="askSubmit" />
+            <x-button text="Submit Final Answers" icon="paper-airplane" wire:click="askSubmit" loading="askSubmit" />
         </div>
     </x-card>
 </div>

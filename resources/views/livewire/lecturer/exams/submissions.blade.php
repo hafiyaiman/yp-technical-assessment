@@ -7,6 +7,8 @@
         <x-button text="Back to Exams" icon="arrow-left" flat :href="route('lecturer.exams.index')" navigate />
     </div>
 
+    <x-lecturer.exams.activity-log :logs="$this->activityLogs()" />
+
     <div class="space-y-4">
         @forelse ($this->attempts() as $attempt)
             <x-card>
@@ -44,7 +46,7 @@
                                 <div class="mt-4 grid gap-3 md:grid-cols-[160px_minmax(0,1fr)_auto] md:items-end">
                                     <x-number wire:model="points.{{ $answer->id }}" label="Points" :min="0" :max="$answer->question->points" />
                                     <x-input wire:model="feedback.{{ $answer->id }}" label="Feedback" placeholder="Short feedback for the student" />
-                                    <x-button text="Save Grade" wire:click="grade({{ $answer->id }})" />
+                                    <x-button text="Save Grade" wire:click="grade({{ $answer->id }})" loading="grade" />
                                 </div>
                             @endif
                         </div>

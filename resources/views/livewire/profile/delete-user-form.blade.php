@@ -56,10 +56,10 @@ new class extends Component
                 <x-password wire:model="password" label="{{ __('Password') }}" placeholder="{{ __('Password') }}" />
             </div>
 
-            <div class="mt-6 flex justify-end">
+            <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
                 <x-button type="button" text="{{ __('Cancel') }}" outline x-on:click="$dispatch('close')" />
 
-                <x-button type="submit" text="{{ __('Delete Account') }}" color="red" class="ms-3" />
+                <x-button type="submit" text="{{ __('Delete Account') }}" color="red" loading="deleteUser" />
             </div>
         </form>
     </x-modal>
