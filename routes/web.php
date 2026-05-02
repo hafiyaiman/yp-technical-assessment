@@ -1,5 +1,9 @@
 <?php
 
+use App\Livewire\Admin\Classes\Index as AdminClassesIndex;
+use App\Livewire\Admin\Subjects\Index as AdminSubjectsIndex;
+use App\Livewire\Admin\TeachingAssignments\Index as AdminTeachingAssignmentsIndex;
+use App\Livewire\Admin\Users\Index as AdminUsersIndex;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -16,10 +20,10 @@ Route::view('profile', 'profile')
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::middleware('role:system-admin')->prefix('admin')->name('admin.')->group(function (): void {
         Route::view('dashboard', 'dashboard')->name('dashboard');
-        Volt::route('users', 'admin.users.index')->name('users.index');
-        Volt::route('classes', 'admin.classes.index')->name('classes.index');
-        Volt::route('subjects', 'admin.subjects.index')->name('subjects.index');
-        Volt::route('teaching-assignments', 'admin.teaching-assignments.index')->name('teaching-assignments.index');
+        Route::get('users', AdminUsersIndex::class)->name('users.index');
+        Route::get('classes', AdminClassesIndex::class)->name('classes.index');
+        Route::get('subjects', AdminSubjectsIndex::class)->name('subjects.index');
+        Route::get('teaching-assignments', AdminTeachingAssignmentsIndex::class)->name('teaching-assignments.index');
     });
 
     Route::view('lecturer/dashboard', 'dashboard')

@@ -2,12 +2,14 @@
 
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
 use Livewire\Volt\Component;
+use TallStackUi\Traits\Interactions;
 
 new class extends Component
 {
+    use Interactions;
+
     public string $name = '';
     public string $email = '';
 
@@ -40,7 +42,7 @@ new class extends Component
 
         $user->save();
 
-        $this->dispatch('profile-updated', name: $user->name);
+        $this->toast()->success('Profile saved.')->send();
     }
 
     /**
@@ -58,7 +60,7 @@ new class extends Component
 
         $user->sendEmailVerificationNotification();
 
-        Session::flash('status', 'verification-link-sent');
+        $this->toast()->success('Verification link sent.', 'A new verification link has been sent to your email address.')->send();
     }
 }; ?>
 
@@ -87,11 +89,6 @@ new class extends Component
                         <x-button type="button" text="{{ __('Click here to re-send the verification email.') }}" flat sm wire:click.prevent="sendVerification" />
                     </p>
 
-                    @if (session('status') === 'verification-link-sent')
-                        <p class="mt-2 font-medium text-sm text-green-600">
-                            {{ __('A new verification link has been sent to your email address.') }}
-                        </p>
-                    @endif
                 </div>
             @endif
         </div>
@@ -99,9 +96,6 @@ new class extends Component
         <div class="flex items-center gap-4">
             <x-button type="submit" text="{{ __('Save') }}" />
 
-            <x-action-message class="me-3" on="profile-updated">
-                {{ __('Saved.') }}
-            </x-action-message>
         </div>
     </form>
 </section>

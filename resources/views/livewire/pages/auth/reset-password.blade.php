@@ -3,20 +3,23 @@
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Volt\Component;
+use TallStackUi\Traits\Interactions;
 
 new #[Layout('layouts.guest')] class extends Component
 {
+    use Interactions;
+
     #[Locked]
     public string $token = '';
     public string $email = '';
     public string $password = '';
     public string $password_confirmation = '';
+    public bool $invitation = false;
 
     /**
      * Mount the component.
@@ -26,6 +29,7 @@ new #[Layout('layouts.guest')] class extends Component
         $this->token = $token;
 
         $this->email = request()->string('email');
+        $this->invitation = request()->boolean('invitation');
     }
 
     /**
@@ -63,7 +67,7 @@ new #[Layout('layouts.guest')] class extends Component
             return;
         }
 
-        Session::flash('status', __($status));
+        $this->toast()->success($this->invitation ? 'Password set.' : 'Password reset.', __($status))->flash()->send();
 
         $this->redirectRoute('login', navigate: true);
     }
@@ -85,7 +89,7 @@ new #[Layout('layouts.guest')] class extends Component
         </div>
 
         <div class="flex items-center justify-end mt-4">
-            <x-button type="submit" text="{{ __('Reset Password') }}" />
+            <x-button type="submit" text="{{ $invitation ? __('Set Password') : __('Reset Password') }}" />
         </div>
     </form>
 </div>

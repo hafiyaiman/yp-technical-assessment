@@ -12,9 +12,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
+use TallStackUi\Traits\Interactions;
 
-new #[Layout('layouts.app')] class extends Component
-{
+new #[Layout('layouts.app')] class extends Component {
+    use Interactions;
+
     public ?int $examId = null;
     public string $teaching_assignment_id = '';
     public string $title = '';
@@ -43,13 +45,18 @@ new #[Layout('layouts.app')] class extends Component
             $this->duration_minutes = $exam->duration_minutes;
             $this->available_from = $exam->available_from?->format('Y-m-d\TH:i') ?? '';
             $this->available_until = $exam->available_until?->format('Y-m-d\TH:i') ?? '';
-            $this->questions = $exam->questions->map(fn (Question $question): array => [
-                'type' => $question->type->value,
-                'prompt' => $question->prompt,
-                'points' => $question->points,
-                'correct_option' => max(0, $question->options->search(fn ($option) => $option->is_correct) ?: 0),
-                'options' => $question->options->map(fn ($option): array => ['text' => $option->text])->values()->all(),
-            ])->values()->all();
+            $this->questions = $exam->questions
+                ->map(
+                    fn(Question $question): array => [
+                        'type' => $question->type->value,
+                        'prompt' => $question->prompt,
+                        'points' => $question->points,
+                        'correct_option' => max(0, $question->options->search(fn($option) => $option->is_correct) ?: 0),
+                        'options' => $question->options->map(fn($option): array => ['text' => $option->text])->values()->all(),
+                    ],
+                )
+                ->values()
+                ->all();
 
             return;
         }
@@ -91,7 +98,7 @@ new #[Layout('layouts.app')] class extends Component
     {
         $exam = $this->persist();
 
-        session()->flash('status', __('Exam draft saved.'));
+        $this->toast()->success('Exam draft saved.')->flash()->send();
         $this->redirectRoute('lecturer.exams.edit', $exam, navigate: true);
     }
 
@@ -100,7 +107,7 @@ new #[Layout('layouts.app')] class extends Component
         $exam = $this->persist();
         $publisher->publish($exam);
 
-        session()->flash('status', __('Exam saved and published.'));
+        $this->toast()->success('Exam saved and published.')->flash()->send();
         $this->redirectRoute('lecturer.exams.edit', $exam, navigate: true);
     }
 
@@ -133,7 +140,7 @@ new #[Layout('layouts.app')] class extends Component
                 continue;
             }
 
-            $options = collect($question['options'] ?? [])->filter(fn ($option) => filled($option['text'] ?? null));
+            $options = collect($question['options'] ?? [])->filter(fn($option) => filled($option['text'] ?? null));
 
             if ($options->count() < 2) {
                 throw ValidationException::withMessages([
@@ -214,16 +221,16 @@ new #[Layout('layouts.app')] class extends Component
             'prompt' => '',
             'points' => 1,
             'correct_option' => 0,
-            'options' => $type === QuestionType::MultipleChoice->value
-                ? [['text' => ''], ['text' => '']]
-                : [],
+            'options' => $type === QuestionType::MultipleChoice->value ? [['text' => ''], ['text' => '']] : [],
         ];
     }
 
     public function assignment()
     {
         return filled($this->teaching_assignment_id)
-            ? TeachingAssignment::query()->with(['schoolClass', 'subject'])->find($this->teaching_assignment_id)
+            ? TeachingAssignment::query()
+                ->with(['schoolClass', 'subject'])
+                ->find($this->teaching_assignment_id)
             : null;
     }
 }; ?>
@@ -237,7 +244,6 @@ new #[Layout('layouts.app')] class extends Component
         <x-button text="Back to Exams" icon="arrow-left" flat :href="route('lecturer.exams.index')" navigate />
     </div>
 
-    <x-auth-session-status :status="session('status')" />
     <x-input-error :messages="$errors->get('exam')" />
 
     <div class="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
@@ -255,7 +261,8 @@ new #[Layout('layouts.app')] class extends Component
                 <x-input wire:model="title" label="Exam title" placeholder="Midterm Paper A" />
                 <x-textarea wire:model="instructions" label="Instructions" resize />
 
-                <x-number wire:model="duration_minutes" label="Time limit in minutes" :min="1" :max="240" />
+                <x-number wire:model="duration_minutes" label="Time limit in minutes" :min="1"
+                    :max="240" />
 
                 <x-input type="datetime-local" wire:model="available_from" label="Available from" />
                 <x-input type="datetime-local" wire:model="available_until" label="Available until" />
@@ -269,7 +276,8 @@ new #[Layout('layouts.app')] class extends Component
 
         <div class="space-y-4">
             <div class="flex flex-wrap gap-2">
-                <x-button text="Add Multiple Choice" icon="list-bullet" outline wire:click="addQuestion('multiple_choice')" />
+                <x-button text="Add Multiple Choice" icon="list-bullet" outline
+                    wire:click="addQuestion('multiple_choice')" />
                 <x-button text="Add Open Text" icon="pencil-square" outline wire:click="addQuestion('open_text')" />
             </div>
 
@@ -280,30 +288,38 @@ new #[Layout('layouts.app')] class extends Component
                             <x-badge text="Question {{ $questionIndex + 1 }}" color="gray" light />
                             <x-badge :text="$question['type'] === 'multiple_choice' ? 'Multiple choice' : 'Open text'" color="blue" light />
                         </div>
-                        <x-button text="Remove" xs color="red" outline wire:click="removeQuestion({{ $questionIndex }})" />
+                        <x-button text="Remove" xs color="red" outline
+                            wire:click="removeQuestion({{ $questionIndex }})" />
                     </div>
 
                     <div class="mt-4 grid gap-4">
-                        <x-select.native wire:model.live="questions.{{ $questionIndex }}.type" label="Question type">
+                        <x-select.styled wire:model.live="questions.{{ $questionIndex }}.type" label="Question type">
                             <option value="multiple_choice">Multiple choice</option>
                             <option value="open_text">Open text</option>
-                        </x-select.native>
+                        </x-select.styled>
 
                         <x-textarea wire:model="questions.{{ $questionIndex }}.prompt" label="Prompt" resize-auto />
-                        <x-number wire:model="questions.{{ $questionIndex }}.points" label="Points" :min="1" :max="100" />
+                        <x-number wire:model="questions.{{ $questionIndex }}.points" label="Points" :min="1"
+                            :max="100" />
 
                         @if ($question['type'] === 'multiple_choice')
                             <div class="space-y-3">
                                 <div class="flex items-center justify-between">
                                     <p class="text-sm font-semibold text-zinc-900">Options</p>
-                                    <x-button text="Add Option" xs outline wire:click="addOption({{ $questionIndex }})" />
+                                    <x-button text="Add Option" xs outline
+                                        wire:click="addOption({{ $questionIndex }})" />
                                 </div>
 
                                 @foreach ($question['options'] as $optionIndex => $option)
-                                    <div class="grid gap-3 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center" wire:key="question-{{ $questionIndex }}-option-{{ $optionIndex }}">
-                                        <x-radio wire:model="questions.{{ $questionIndex }}.correct_option" value="{{ $optionIndex }}" label="Correct" sm />
-                                        <x-input wire:model="questions.{{ $questionIndex }}.options.{{ $optionIndex }}.text" placeholder="Option text" />
-                                        <x-button.circle icon="trash" color="red" outline wire:click="removeOption({{ $questionIndex }}, {{ $optionIndex }})" />
+                                    <div class="grid gap-3 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center"
+                                        wire:key="question-{{ $questionIndex }}-option-{{ $optionIndex }}">
+                                        <x-radio wire:model="questions.{{ $questionIndex }}.correct_option"
+                                            value="{{ $optionIndex }}" label="Correct" sm />
+                                        <x-input
+                                            wire:model="questions.{{ $questionIndex }}.options.{{ $optionIndex }}.text"
+                                            placeholder="Option text" />
+                                        <x-button.circle icon="trash" color="red" outline
+                                            wire:click="removeOption({{ $questionIndex }}, {{ $optionIndex }})" />
                                     </div>
                                 @endforeach
                             </div>

@@ -14,6 +14,9 @@ use App\Services\Exams\ExamAttemptService;
 use App\Services\Exams\ExamPublicationService;
 use App\Services\Exams\OpenTextGradingService;
 use Illuminate\Validation\ValidationException;
+use App\Notifications\UserInvitation;
+use Illuminate\Support\Facades\Notification;
+use Livewire\Livewire;
 use Livewire\Volt\Volt;
 
 beforeEach(function (): void {
@@ -77,7 +80,7 @@ test('admin can create subjects and classes with student assignments', function 
 
     $this->actingAs($admin);
 
-    Volt::test('admin.subjects.index')
+    Livewire::test('admin.subjects.index')
         ->set('name', 'Mathematics')
         ->set('code', 'MATH')
         ->set('description', 'Numbers and patterns')
@@ -86,7 +89,7 @@ test('admin can create subjects and classes with student assignments', function 
 
     $subject = Subject::query()->where('code', 'MATH')->firstOrFail();
 
-    Volt::test('admin.classes.index')
+    Livewire::test('admin.classes.index')
         ->set('name', 'Class 4A')
         ->set('code', 'CLASS-4A')
         ->set('subjectIds', [$subject->id])
@@ -101,30 +104,43 @@ test('admin can create subjects and classes with student assignments', function 
 });
 
 test('admin can create lecturer and student users', function (): void {
+    Notification::fake();
+
     $admin = User::factory()->systemAdmin()->create();
     $class = SchoolClass::factory()->create();
 
     $this->actingAs($admin);
 
-    Volt::test('admin.users.index')
+    Livewire::test('admin.users.index')
         ->set('name', 'New Lecturer')
         ->set('email', 'new-lecturer@example.com')
-        ->set('password', 'password')
         ->set('role', 'lecturer')
         ->call('save')
         ->assertHasNoErrors();
 
-    Volt::test('admin.users.index')
+    Livewire::test('admin.users.index')
         ->set('name', 'New Student')
         ->set('email', 'new-student-user@example.com')
-        ->set('password', 'password')
         ->set('role', 'student')
         ->set('school_class_id', (string) $class->id)
         ->call('save')
         ->assertHasNoErrors();
 
-    expect(User::query()->where('email', 'new-lecturer@example.com')->firstOrFail()->hasRole('lecturer'))->toBeTrue();
-    expect(User::query()->where('email', 'new-student-user@example.com')->firstOrFail()->school_class_id)->toBe($class->id);
+    $lecturer = User::query()->where('email', 'new-lecturer@example.com')->firstOrFail();
+    $student = User::query()->where('email', 'new-student-user@example.com')->firstOrFail();
+
+    expect($lecturer->hasRole('lecturer'))->toBeTrue();
+    expect($student->school_class_id)->toBe($class->id);
+
+    Notification::assertSentTo($lecturer, UserInvitation::class, function (UserInvitation $notification) use ($lecturer): bool {
+        $mail = $notification->toMail($lecturer);
+
+        expect($mail->subject)->toBe('You are invited to Exam Portal');
+        expect($mail->actionText)->toBe('Set Password');
+
+        return true;
+    });
+    Notification::assertSentTo($student, UserInvitation::class);
 });
 
 test('admin can assign lecturers to class subject pairs', function (): void {
@@ -136,7 +152,7 @@ test('admin can assign lecturers to class subject pairs', function (): void {
 
     $this->actingAs($admin);
 
-    Volt::test('admin.teaching-assignments.index')
+    Livewire::test('admin.teaching-assignments.index')
         ->set('lecturer_id', (string) $lecturer->id)
         ->set('school_class_id', (string) $class->id)
         ->set('subject_id', (string) $subject->id)
@@ -148,6 +164,117 @@ test('admin can assign lecturers to class subject pairs', function (): void {
         ->where('school_class_id', $class->id)
         ->where('subject_id', $subject->id)
         ->exists())->toBeTrue();
+});
+
+test('admin can filter users by search role class and subject', function (): void {
+    $admin = User::factory()->systemAdmin()->create();
+    $math = Subject::factory()->create(['name' => 'Algebra Prime', 'code' => 'ALG']);
+    $english = Subject::factory()->create(['name' => 'Biology Prime', 'code' => 'BIO']);
+    $classA = SchoolClass::factory()->create(['name' => 'Room Alpha', 'code' => 'ROOM-A']);
+    $classB = SchoolClass::factory()->create(['name' => 'Room Beta', 'code' => 'ROOM-B']);
+    $classA->subjects()->attach($math);
+    $classB->subjects()->attach($english);
+
+    $lecturerA = User::factory()->lecturer()->create(['name' => 'Alpha Lecturer', 'email' => 'alpha-lecturer@example.com']);
+    $lecturerB = User::factory()->lecturer()->create(['name' => 'Beta Lecturer', 'email' => 'beta-lecturer@example.com']);
+    $studentA = User::factory()->student()->create(['name' => 'Alpha Student', 'email' => 'alpha-student@example.com', 'school_class_id' => $classA->id]);
+    $studentB = User::factory()->student()->create(['name' => 'Beta Student', 'email' => 'beta-student@example.com', 'school_class_id' => $classB->id]);
+
+    TeachingAssignment::factory()->create([
+        'lecturer_id' => $lecturerA->id,
+        'school_class_id' => $classA->id,
+        'subject_id' => $math->id,
+    ]);
+    TeachingAssignment::factory()->create([
+        'lecturer_id' => $lecturerB->id,
+        'school_class_id' => $classB->id,
+        'subject_id' => $english->id,
+    ]);
+
+    $this->actingAs($admin);
+
+    Livewire::test('admin.users.index')
+        ->set('search', 'Alpha')
+        ->assertSee('Alpha Lecturer')
+        ->assertSee('Alpha Student')
+        ->assertDontSee('Beta Lecturer')
+        ->set('search', '')
+        ->set('roleFilters', ['student'])
+        ->assertSee('Alpha Student')
+        ->assertSee('Beta Student')
+        ->assertDontSee('Alpha Lecturer')
+        ->set('roleFilters', [])
+        ->set('classFilters', [$classA->id])
+        ->assertSee('Alpha Lecturer')
+        ->assertSee('Alpha Student')
+        ->assertDontSee('Beta Student')
+        ->set('classFilters', [])
+        ->set('subjectFilters', [$math->id])
+        ->assertSee('Alpha Lecturer')
+        ->assertDontSee('Alpha Student')
+        ->assertDontSee('Beta Lecturer');
+});
+
+test('admin can manage lecturer teaching assignments from users table', function (): void {
+    $admin = User::factory()->systemAdmin()->create();
+    $lecturer = User::factory()->lecturer()->create();
+    $classA = SchoolClass::factory()->create();
+    $classB = SchoolClass::factory()->create();
+    $math = Subject::factory()->create();
+    $english = Subject::factory()->create();
+    $classA->subjects()->attach($math);
+    $classB->subjects()->attach($english);
+
+    $oldAssignment = TeachingAssignment::factory()->create([
+        'lecturer_id' => $lecturer->id,
+        'school_class_id' => $classA->id,
+        'subject_id' => $math->id,
+    ]);
+
+    $this->actingAs($admin);
+
+    Livewire::test('admin.users.index')
+        ->call('manageTeaching', $lecturer->id)
+        ->set('teachingAssignmentKeys', ["{$classB->id}:{$english->id}"])
+        ->call('saveTeachingAssignments')
+        ->assertHasNoErrors();
+
+    expect(TeachingAssignment::query()->whereKey($oldAssignment->id)->exists())->toBeFalse();
+    expect(TeachingAssignment::query()
+        ->where('lecturer_id', $lecturer->id)
+        ->where('school_class_id', $classB->id)
+        ->where('subject_id', $english->id)
+        ->exists())->toBeTrue();
+});
+
+test('admin can search and filter classes and subjects', function (): void {
+    $admin = User::factory()->systemAdmin()->create();
+    $math = Subject::factory()->create(['name' => 'Algebra Prime', 'code' => 'ALG']);
+    $english = Subject::factory()->create(['name' => 'Biology Prime', 'code' => 'BIO']);
+    $classA = SchoolClass::factory()->create(['name' => 'Room Alpha', 'code' => 'ROOM-A']);
+    $classB = SchoolClass::factory()->create(['name' => 'Room Beta', 'code' => 'ROOM-B']);
+    $classA->subjects()->attach($math);
+    $classB->subjects()->attach($english);
+
+    $this->actingAs($admin);
+
+    Livewire::test('admin.classes.index')
+        ->set('search', 'Alpha')
+        ->assertSee('Room Alpha')
+        ->assertDontSee('Room Beta')
+        ->set('search', '')
+        ->set('subjectFilters', [$english->id])
+        ->assertSee('Room Beta')
+        ->assertDontSee('Room Alpha');
+
+    Livewire::test('admin.subjects.index')
+        ->set('search', 'Algebra')
+        ->assertSee('Algebra Prime')
+        ->assertDontSee('Biology Prime')
+        ->set('search', '')
+        ->set('classFilters', [$classB->id])
+        ->assertSee('Biology Prime')
+        ->assertDontSee('Algebra Prime');
 });
 
 test('lecturer can build a draft exam with multiple-choice and open-text questions', function (): void {

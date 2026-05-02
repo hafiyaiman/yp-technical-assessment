@@ -2,12 +2,14 @@
 
 use App\Livewire\Actions\Logout;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
+use TallStackUi\Traits\Interactions;
 
 new #[Layout('layouts.guest')] class extends Component
 {
+    use Interactions;
+
     /**
      * Send an email verification notification to the user.
      */
@@ -21,7 +23,7 @@ new #[Layout('layouts.guest')] class extends Component
 
         Auth::user()->sendEmailVerificationNotification();
 
-        Session::flash('status', 'verification-link-sent');
+        $this->toast()->success('Verification link sent.', 'A new verification link has been sent to your email address.')->send();
     }
 
     /**
@@ -39,12 +41,6 @@ new #[Layout('layouts.guest')] class extends Component
     <div class="mb-4 text-sm text-gray-600">
         {{ __('Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
     </div>
-
-    @if (session('status') == 'verification-link-sent')
-        <div class="mb-4 font-medium text-sm text-green-600">
-            {{ __('A new verification link has been sent to the email address you provided during registration.') }}
-        </div>
-    @endif
 
     <div class="mt-4 flex items-center justify-between">
         <x-button text="{{ __('Resend Verification Email') }}" wire:click="sendVerification" />

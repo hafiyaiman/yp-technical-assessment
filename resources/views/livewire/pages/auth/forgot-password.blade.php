@@ -3,9 +3,12 @@
 use Illuminate\Support\Facades\Password;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
+use TallStackUi\Traits\Interactions;
 
 new #[Layout('layouts.guest')] class extends Component
 {
+    use Interactions;
+
     public string $email = '';
 
     /**
@@ -32,7 +35,7 @@ new #[Layout('layouts.guest')] class extends Component
 
         $this->reset('email');
 
-        session()->flash('status', __($status));
+        $this->toast()->success('Password reset link sent.', __($status))->send();
     }
 }; ?>
 
@@ -40,9 +43,6 @@ new #[Layout('layouts.guest')] class extends Component
     <div class="mb-4 text-sm text-gray-600">
         {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
     </div>
-
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
 
     <form wire:submit="sendPasswordResetLink">
         <!-- Email Address -->

@@ -7,9 +7,12 @@ use App\Models\ExamAnswer;
 use App\Services\Exams\OpenTextGradingService;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
+use TallStackUi\Traits\Interactions;
 
 new #[Layout('layouts.app')] class extends Component
 {
+    use Interactions;
+
     public Exam $exam;
     public array $points = [];
     public array $feedback = [];
@@ -44,7 +47,7 @@ new #[Layout('layouts.app')] class extends Component
             $this->feedback[$answerId] ?? null,
         );
 
-        session()->flash('status', __('Answer graded.'));
+        $this->toast()->success('Answer graded.')->send();
     }
 
     public function attempts()
@@ -65,8 +68,6 @@ new #[Layout('layouts.app')] class extends Component
         </div>
         <x-button text="Back to Exams" icon="arrow-left" flat :href="route('lecturer.exams.index')" navigate />
     </div>
-
-    <x-auth-session-status :status="session('status')" />
 
     <div class="space-y-4">
         @forelse ($this->attempts() as $attempt)

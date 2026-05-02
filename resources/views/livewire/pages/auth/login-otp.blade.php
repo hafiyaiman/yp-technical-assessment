@@ -9,9 +9,12 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
+use TallStackUi\Traits\Interactions;
 
 new #[Layout('layouts.guest')] class extends Component
 {
+    use Interactions;
+
     #[Validate('required|digits:6')]
     public string $code = '';
 
@@ -68,7 +71,7 @@ new #[Layout('layouts.guest')] class extends Component
 
         $otps->send($user, (bool) session(LoginOtpService::SESSION_REMEMBER, false));
 
-        session()->flash('status', __('A new verification code has been sent.'));
+        $this->toast()->success('Verification code sent.', 'A new verification code has been sent.')->send();
     }
 
     public function cancel(): void
@@ -88,8 +91,6 @@ new #[Layout('layouts.guest')] class extends Component
 }; ?>
 
 <div>
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
     <form wire:submit="verify">
         <x-pin
             wire:model.live="code"

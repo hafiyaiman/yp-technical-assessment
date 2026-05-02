@@ -16,9 +16,7 @@ new class extends Component {
         $items = [['label' => 'Dashboard', 'link' => route('dashboard'), 'icon' => 'home']];
 
         if (request()->routeIs('admin.users.*')) {
-            $role = request('roleFilter');
-
-            return [...$items, ['label' => $role === 'student' ? 'Students' : ($role === 'lecturer' ? 'Lecturers' : 'Users')]];
+            return [...$items, ['label' => 'Users']];
         }
 
         if (request()->routeIs('admin.classes.*')) {
@@ -89,20 +87,14 @@ new class extends Component {
 
         @if (auth()->user()->hasRole('system-admin'))
             <x-side-bar.separator text="Admin" />
-            <x-side-bar.item text="Users" :href="route('admin.users.index')" icon="users" :current="request()->routeIs('admin.users.*') && request('roleFilter') === null" wire:navigate />
-            <x-side-bar.item text="Students" :href="route('admin.users.index', ['roleFilter' => 'student'])" icon="academic-cap" :current="request()->routeIs('admin.users.*') && request('roleFilter') === 'student'" wire:navigate />
-            <x-side-bar.item text="Lecturers" :href="route('admin.users.index', ['roleFilter' => 'lecturer'])" icon="presentation-chart-bar" :current="request()->routeIs('admin.users.*') && request('roleFilter') === 'lecturer'"
-                wire:navigate />
+            <x-side-bar.item text="Users" :href="route('admin.users.index')" icon="users" :current="request()->routeIs('admin.users.*')" wire:navigate />
             <x-side-bar.item text="Classes" :href="route('admin.classes.index')" icon="building-library" :current="request()->routeIs('admin.classes.*')" wire:navigate />
             <x-side-bar.item text="Subjects" :href="route('admin.subjects.index')" icon="book-open" :current="request()->routeIs('admin.subjects.*')" wire:navigate />
-            <x-side-bar.item text="Teaching Assignments" :href="route('admin.teaching-assignments.index')" icon="clipboard-document-list"
-                :current="request()->routeIs('admin.teaching-assignments.*')" wire:navigate />
         @endif
 
         @if (auth()->user()->hasPermission('manage-exams'))
             <x-side-bar.separator text="Lecturer" />
-            <x-side-bar.item text="My Classes" :href="route('lecturer.teaching.index')" icon="academic-cap" :current="request()->routeIs('lecturer.teaching.*')"
-                wire:navigate />
+            <x-side-bar.item text="My Classes" :href="route('lecturer.teaching.index')" icon="academic-cap" :current="request()->routeIs('lecturer.teaching.*')" wire:navigate />
             <x-side-bar.item text="Exams" :href="route('lecturer.exams.index')" icon="document-text" :current="request()->routeIs('lecturer.exams.*')" wire:navigate />
             <x-side-bar.item text="Marking" :href="route('lecturer.exams.index')" icon="pencil-square" wire:navigate />
             <x-side-bar.item text="Results" :href="route('lecturer.exams.index')" icon="chart-bar" wire:navigate />
@@ -123,7 +115,7 @@ new class extends Component {
     </x-side-bar>
 
     <header
-        class="fixed left-0 right-0 top-0 z-20 flex h-16 items-center justify-between border-b border-zinc-200 dark:border-zinc-700 bg-white/95 dark:bg-dark-800 px-4 backdrop-blur md:left-72">
+        class="fixed left-0 right-0 top-0 z-20 flex h-16 items-center justify-between border-b border-zinc-200 bg-white/95 px-4 backdrop-blur dark:border-dark-600 dark:bg-dark-900 md:left-72">
         <div class="flex items-center gap-3">
             <x-button.circle icon="bars-3" color="gray" outline x-on:click="tallStackUiMenuMobile = true"
                 class="md:hidden" aria-label="Open navigation" />
@@ -136,7 +128,7 @@ new class extends Component {
             <x-dropdown position="bottom-end">
                 <x-slot:action>
                     <button type="button" x-on:click="show = !show"
-                        class="flex items-center gap-3 rounded-full border border-zinc-200 bg-white text-left shadow-sm hover:bg-zinc-50">
+                        class="flex items-center gap-3 rounded-full border border-zinc-200 bg-white text-left shadow-sm hover:bg-zinc-50 dark:border-dark-600 dark:bg-dark-700 dark:hover:bg-dark-600">
                         <span
                             class="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900 text-xs font-semibold text-white">
                             {{ str(auth()->user()->name)->substr(0, 1)->upper() }}
@@ -147,7 +139,7 @@ new class extends Component {
                 <x-slot:header>
                     <div class="px-2 py-1">
                         <p class="text-sm font-semibold text-zinc-950 dark:text-white">{{ auth()->user()->name }}</p>
-                        <p class="text-xs text-zinc-500">{{ auth()->user()->email }}</p>
+                        <p class="text-xs text-zinc-500 dark:text-dark-300">{{ auth()->user()->email }}</p>
                     </div>
                 </x-slot:header>
 

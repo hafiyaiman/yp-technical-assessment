@@ -5,10 +5,20 @@ use App\Services\Auth\LoginOtpService;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
+use TallStackUi\Traits\Interactions;
 
 new #[Layout('layouts.guest')] class extends Component
 {
+    use Interactions;
+
     public LoginForm $form;
+
+    public function mount(): void
+    {
+        if (session('status')) {
+            $this->toast()->success('Done.', session('status'))->send();
+        }
+    }
 
     /**
      * Handle an incoming authentication request.
@@ -28,9 +38,6 @@ new #[Layout('layouts.guest')] class extends Component
 }; ?>
 
 <div>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
     <form wire:submit="login">
         <!-- Email Address -->
         <x-input wire:model="form.email" label="{{ __('Email') }}" type="email" required autofocus autocomplete="username" />

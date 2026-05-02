@@ -5,9 +5,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Livewire\Volt\Component;
+use TallStackUi\Traits\Interactions;
 
 new class extends Component
 {
+    use Interactions;
+
     public string $current_password = '';
     public string $password = '';
     public string $password_confirmation = '';
@@ -34,7 +37,7 @@ new class extends Component
 
         $this->reset('current_password', 'password', 'password_confirmation');
 
-        $this->dispatch('password-updated');
+        $this->toast()->success('Password updated.')->send();
     }
 }; ?>
 
@@ -63,9 +66,6 @@ new class extends Component
         <div class="flex items-center gap-4">
             <x-button type="submit" text="{{ __('Save') }}" />
 
-            <x-action-message class="me-3" on="password-updated">
-                {{ __('Saved.') }}
-            </x-action-message>
         </div>
     </form>
 </section>

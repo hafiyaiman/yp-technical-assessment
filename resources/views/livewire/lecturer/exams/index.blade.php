@@ -7,11 +7,12 @@ use App\Services\Exams\ExamPublicationService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Volt\Component;
+use Livewire\WithPagination;
 use TallStackUi\Traits\Interactions;
 
-new #[Layout('layouts.app')] class extends Component 
-{
+new #[Layout('layouts.app')] class extends Component {
     use Interactions;
+    use WithPagination;
 
     #[Url]
     public string $assignmentFilter = '';
@@ -21,6 +22,16 @@ new #[Layout('layouts.app')] class extends Component
     public function mount(): void
     {
         abort_unless(auth()->user()->hasPermission('manage-exams'), 403);
+    }
+
+    public function updatedStatusFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedAssignmentFilter(): void
+    {
+        $this->resetPage();
     }
 
     public function askPublish(int $id): void
@@ -38,7 +49,7 @@ new #[Layout('layouts.app')] class extends Component
     {
         $publisher->publish($this->findOwnedExam($id)->load(['questions.options', 'schoolClass.subjects', 'teachingAssignment']));
 
-        session()->flash('status', __('Exam published.'));
+        $this->toast()->success('Exam published.')->send();
     }
 
     public function askClose(int $id): void
@@ -56,7 +67,7 @@ new #[Layout('layouts.app')] class extends Component
     {
         $publisher->close($this->findOwnedExam($id));
 
-        session()->flash('status', __('Exam closed.'));
+        $this->toast()->success('Exam closed.')->send();
     }
 
     public function askDelete(int $id): void
@@ -74,7 +85,7 @@ new #[Layout('layouts.app')] class extends Component
     {
         $this->findOwnedExam($id)->delete();
 
-        session()->flash('status', __('Exam deleted.'));
+        $this->toast()->success('Exam deleted.')->send();
     }
 
     public function exams()
@@ -86,7 +97,7 @@ new #[Layout('layouts.app')] class extends Component
             ->when($this->statusFilter !== '', fn($query) => $query->where('status', $this->statusFilter))
             ->when($this->assignmentFilter !== '', fn($query) => $query->where('teaching_assignment_id', $this->assignmentFilter))
             ->latest()
-            ->get();
+            ->paginate(10);
     }
 
     public function assignments()
@@ -125,27 +136,25 @@ new #[Layout('layouts.app')] class extends Component
         <x-button text="Create from My Classes" icon="plus" :href="route('lecturer.teaching.index')" navigate />
     </div>
 
-    <x-auth-session-status :status="session('status')" />
-
     <x-card>
         <div class="mb-5 grid gap-3 md:grid-cols-3">
-            <x-select.native wire:model.live="statusFilter" label="Status">
+            <x-select.styled wire:model.live="statusFilter" label="Status">
                 <option value="">All statuses</option>
                 @foreach (ExamStatus::cases() as $status)
                     <option value="{{ $status->value }}">{{ str($status->value)->headline() }}</option>
                 @endforeach
-            </x-select.native>
+            </x-select.styled>
 
-            <x-select.native wire:model.live="assignmentFilter" label="Class / Subject">
+            <x-select.styled wire:model.live="assignmentFilter" label="Class / Subject">
                 <option value="">All assignments</option>
                 @foreach ($this->assignments() as $assignment)
                     <option value="{{ $assignment->id }}">{{ $assignment->schoolClass->name }} /
                         {{ $assignment->subject->name }}</option>
                 @endforeach
-            </x-select.native>
+            </x-select.styled>
         </div>
 
-        <x-table :headers="$this->headers()" :rows="$this->exams()" striped>
+        <x-table :headers="$this->headers()" :rows="$this->exams()" striped paginate>
             @interact('column_title', $row)
                 <div>
                     <p class="font-medium text-zinc-950">{{ $row->title }}</p>

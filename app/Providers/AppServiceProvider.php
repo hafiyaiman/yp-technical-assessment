@@ -26,12 +26,22 @@ class AppServiceProvider extends ServiceProvider
 
         TallStackUi::customize()
             ->sideBar('item')
-            ->block('item.state.normal', 'text-foreground hover:bg-primary-50 dark:hover:bg-dark-600 dark:text-white')
-            ->block('item.icon', 'text-foreground h-5 w-5 shrink-0 transition-all dark:text-white');
+            ->block('item.state.normal', 'text-zinc-700 hover:bg-primary-50 dark:text-dark-100 dark:hover:bg-dark-600')
+            ->block('item.icon', 'h-5 w-5 shrink-0 text-zinc-500 transition-all dark:text-dark-300');
 
         TallStackUi::customize()
             ->sideBar('separator')
             ->block('simple.wrapper', 'flex pt-2 pb-1 pl-2')
-            ->block('simple.base', 'text-foreground dark:text-dark-100 text-xs font-semibold leading-6 whitespace-nowrap overflow-hidden transition-all duration-150');
+            ->block('simple.base', 'text-xs font-semibold leading-6 text-zinc-500 whitespace-nowrap overflow-hidden transition-all duration-150 dark:text-dark-300');
+
+        TallStackUi::customize()
+            ->select('styled')
+            ->block('floating.class', 'w-96 max-w-[calc(100vw-1rem)] overflow-auto')
+            ->block('input.content.wrapper.first', 'relative inset-y-0 left-0 flex min-w-0 w-full items-center space-x-2 overflow-hidden rounded-lg pl-2')
+            ->block('input.content.wrapper.second', 'flex min-w-0 flex-1 items-center gap-2 overflow-hidden')
+            ->block('items.wrapper', 'flex min-w-0 flex-1 gap-1 overflow-hidden')
+            ->block('items.multiple.item', 'dark:text-dark-100 dark:bg-dark-700 dark:ring-dark-600 inline-flex h-6 max-w-44 items-center space-x-1 rounded-lg bg-gray-100 px-2 text-sm font-medium text-gray-600 ring-1 ring-inset ring-gray-200')
+            ->block('items.multiple.label.wrapper', 'flex min-w-0 items-center')
+            ->block('items.multiple.label', 'truncate text-left');
     }
 }
