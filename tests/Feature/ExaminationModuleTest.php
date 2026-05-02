@@ -290,7 +290,7 @@ test('lecturer can build a draft exam with multiple-choice and open-text questio
 
     $this->actingAs($lecturer);
 
-    Volt::test('lecturer.exams.builder', ['assignment' => $assignment])
+    Livewire::test('lecturer.exams.builder', ['assignment' => $assignment])
         ->set('title', 'Midterm Paper A')
         ->set('instructions', 'Answer carefully.')
         ->set('duration_minutes', 15)
@@ -341,7 +341,7 @@ test('lecturer sees only assigned exams and cannot manage another lecturer exam'
 
     $this->actingAs($otherLecturer);
 
-    Volt::test('lecturer.exams.index')
+    Livewire::test('lecturer.exams.index')
         ->assertDontSee($fixture['exam']->title);
 });
 

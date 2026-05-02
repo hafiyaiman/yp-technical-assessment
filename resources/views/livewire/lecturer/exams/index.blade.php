@@ -1,132 +1,3 @@
-<?php
-
-use App\Enums\ExamStatus;
-use App\Models\Exam;
-use App\Models\TeachingAssignment;
-use App\Services\Exams\ExamPublicationService;
-use Livewire\Attributes\Layout;
-use Livewire\Attributes\Url;
-use Livewire\Volt\Component;
-use Livewire\WithPagination;
-use TallStackUi\Traits\Interactions;
-
-new #[Layout('layouts.app')] class extends Component {
-    use Interactions;
-    use WithPagination;
-
-    #[Url]
-    public string $assignmentFilter = '';
-
-    public string $statusFilter = '';
-
-    public function mount(): void
-    {
-        abort_unless(auth()->user()->hasPermission('manage-exams'), 403);
-    }
-
-    public function updatedStatusFilter(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatedAssignmentFilter(): void
-    {
-        $this->resetPage();
-    }
-
-    public function askPublish(int $id): void
-    {
-        $exam = $this->findOwnedExam($id);
-
-        $this->dialog()
-            ->question('Publish exam?', "Students in {$exam->schoolClass->name} will be able to access {$exam->title}.")
-            ->confirm('Publish', 'confirmPublish', $id)
-            ->cancel('Cancel')
-            ->send();
-    }
-
-    public function confirmPublish(int $id, ExamPublicationService $publisher): void
-    {
-        $publisher->publish($this->findOwnedExam($id)->load(['questions.options', 'schoolClass.subjects', 'teachingAssignment']));
-
-        $this->toast()->success('Exam published.')->send();
-    }
-
-    public function askClose(int $id): void
-    {
-        $exam = $this->findOwnedExam($id);
-
-        $this->dialog()
-            ->question('Close exam?', "Students will no longer be able to start {$exam->title}.")
-            ->confirm('Close exam', 'confirmClose', $id)
-            ->cancel('Cancel')
-            ->send();
-    }
-
-    public function confirmClose(int $id, ExamPublicationService $publisher): void
-    {
-        $publisher->close($this->findOwnedExam($id));
-
-        $this->toast()->success('Exam closed.')->send();
-    }
-
-    public function askDelete(int $id): void
-    {
-        $exam = $this->findOwnedExam($id);
-
-        $this->dialog()
-            ->question('Delete exam?', "This will permanently delete {$exam->title}, including questions and submissions.")
-            ->confirm('Yes, delete', 'confirmDelete', $id)
-            ->cancel('Cancel')
-            ->send();
-    }
-
-    public function confirmDelete(int $id): void
-    {
-        $this->findOwnedExam($id)->delete();
-
-        $this->toast()->success('Exam deleted.')->send();
-    }
-
-    public function exams()
-    {
-        return Exam::query()
-            ->with(['schoolClass', 'subject', 'teachingAssignment'])
-            ->withCount(['questions', 'attempts'])
-            ->assignedTo(auth()->user())
-            ->when($this->statusFilter !== '', fn($query) => $query->where('status', $this->statusFilter))
-            ->when($this->assignmentFilter !== '', fn($query) => $query->where('teaching_assignment_id', $this->assignmentFilter))
-            ->latest()
-            ->paginate(10);
-    }
-
-    public function assignments()
-    {
-        return TeachingAssignment::query()
-            ->with(['schoolClass', 'subject'])
-            ->where('lecturer_id', auth()->id())
-            ->latest()
-            ->get();
-    }
-
-    private function findOwnedExam(int $id): Exam
-    {
-        $exam = Exam::query()
-            ->with(['schoolClass', 'subject', 'teachingAssignment'])
-            ->assignedTo(auth()->user())
-            ->findOrFail($id);
-
-        abort_unless(auth()->user()->can('update', $exam), 403);
-
-        return $exam;
-    }
-
-    public function headers(): array
-    {
-        return [['index' => 'title', 'label' => 'Exam'], ['index' => 'assignment', 'label' => 'Class / Subject', 'sortable' => false], ['index' => 'status', 'label' => 'Status'], ['index' => 'questions_count', 'label' => 'Questions'], ['index' => 'attempts_count', 'label' => 'Submissions'], ['index' => 'action', 'label' => 'Actions', 'sortable' => false, 'align' => 'center']];
-    }
-}; ?>
-
 <div class="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -140,7 +11,7 @@ new #[Layout('layouts.app')] class extends Component {
         <div class="mb-5 grid gap-3 md:grid-cols-3">
             <x-select.styled wire:model.live="statusFilter" label="Status">
                 <option value="">All statuses</option>
-                @foreach (ExamStatus::cases() as $status)
+                @foreach (\App\Enums\ExamStatus::cases() as $status)
                     <option value="{{ $status->value }}">{{ str($status->value)->headline() }}</option>
                 @endforeach
             </x-select.styled>
@@ -170,9 +41,9 @@ new #[Layout('layouts.app')] class extends Component {
             @endinteract
 
             @interact('column_status', $row)
-                <x-badge :text="str($row->status->value)->headline()" :color="$row->status === ExamStatus::Published
+                <x-badge :text="str($row->status->value)->headline()" :color="$row->status === \App\Enums\ExamStatus::Published
                     ? 'green'
-                    : ($row->status === ExamStatus::Closed
+                    : ($row->status === \App\Enums\ExamStatus::Closed
                         ? 'red'
                         : 'gray')" light />
             @endinteract
@@ -183,7 +54,7 @@ new #[Layout('layouts.app')] class extends Component {
                         <x-dropdown.items text="Builder" icon="pencil-square" :href="route('lecturer.exams.edit', $row)" navigate />
                         <x-dropdown.items text="Submissions" icon="clipboard-document-check" :href="route('lecturer.exams.submissions', $row)" navigate />
 
-                        @if ($row->status !== ExamStatus::Published)
+                        @if ($row->status !== \App\Enums\ExamStatus::Published)
                             <x-dropdown.items text="Publish" icon="rocket-launch"
                                 wire:click="askPublish({{ $row->id }})" />
                         @else

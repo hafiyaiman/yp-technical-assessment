@@ -1,32 +1,3 @@
-<?php
-
-use App\Models\TeachingAssignment;
-use Livewire\Attributes\Layout;
-use Livewire\Volt\Component;
-
-new #[Layout('layouts.app')] class extends Component
-{
-    public function mount(): void
-    {
-        abort_unless(auth()->user()->hasPermission('view-assigned-classes'), 403);
-    }
-
-    public function assignments()
-    {
-        return TeachingAssignment::query()
-            ->with(['schoolClass.students', 'subject'])
-            ->withCount('exams')
-            ->where('lecturer_id', auth()->id())
-            ->orderBy(
-                \App\Models\SchoolClass::query()
-                    ->select('name')
-                    ->whereColumn('school_classes.id', 'teaching_assignments.school_class_id')
-                    ->limit(1),
-            )
-            ->get();
-    }
-}; ?>
-
 <div class="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>

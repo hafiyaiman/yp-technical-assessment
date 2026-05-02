@@ -4,6 +4,10 @@ use App\Livewire\Admin\Classes\Index as AdminClassesIndex;
 use App\Livewire\Admin\Subjects\Index as AdminSubjectsIndex;
 use App\Livewire\Admin\TeachingAssignments\Index as AdminTeachingAssignmentsIndex;
 use App\Livewire\Admin\Users\Index as AdminUsersIndex;
+use App\Livewire\Lecturer\Exams\Builder as LecturerExamBuilder;
+use App\Livewire\Lecturer\Exams\Index as LecturerExamsIndex;
+use App\Livewire\Lecturer\Exams\Submissions as LecturerExamSubmissions;
+use App\Livewire\Lecturer\Teaching\Index as LecturerTeachingIndex;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -31,11 +35,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->name('lecturer.dashboard');
 
     Route::middleware('role:lecturer')->prefix('lecturer')->name('lecturer.')->group(function (): void {
-        Volt::route('my-classes', 'lecturer.teaching.index')->name('teaching.index');
-        Volt::route('exams', 'lecturer.exams.index')->name('exams.index');
-        Volt::route('teaching/{assignment}/exams/create', 'lecturer.exams.builder')->name('teaching.exams.create');
-        Volt::route('exams/{exam}/edit', 'lecturer.exams.builder')->name('exams.edit');
-        Volt::route('exams/{exam}/submissions', 'lecturer.exams.submissions')->name('exams.submissions');
+        Route::get('my-classes', LecturerTeachingIndex::class)->name('teaching.index');
+        Route::get('exams', LecturerExamsIndex::class)->name('exams.index');
+        Route::get('teaching/{assignment}/exams/create', LecturerExamBuilder::class)->name('teaching.exams.create');
+        Route::get('exams/{exam}/edit', LecturerExamBuilder::class)->name('exams.edit');
+        Route::get('exams/{exam}/submissions', LecturerExamSubmissions::class)->name('exams.submissions');
     });
 
     Route::middleware('role:student')->prefix('student')->name('student.')->group(function (): void {

@@ -1,65 +1,3 @@
-<?php
-
-use App\Enums\ExamAttemptStatus;
-use App\Enums\QuestionType;
-use App\Models\Exam;
-use App\Models\ExamAnswer;
-use App\Services\Exams\OpenTextGradingService;
-use Livewire\Attributes\Layout;
-use Livewire\Volt\Component;
-use TallStackUi\Traits\Interactions;
-
-new #[Layout('layouts.app')] class extends Component
-{
-    use Interactions;
-
-    public Exam $exam;
-    public array $points = [];
-    public array $feedback = [];
-
-    public function mount(Exam $exam): void
-    {
-        $exam->load(['teachingAssignment', 'schoolClass', 'subject']);
-        abort_unless(auth()->user()->can('manageSubmissions', $exam), 403);
-
-        $this->exam = $exam;
-
-        foreach ($this->attempts() as $attempt) {
-            foreach ($attempt->answers as $answer) {
-                $this->points[$answer->id] = $answer->points_awarded;
-                $this->feedback[$answer->id] = (string) $answer->feedback;
-            }
-        }
-    }
-
-    public function grade(int $answerId, OpenTextGradingService $grader): void
-    {
-        $answer = ExamAnswer::query()
-            ->with(['question', 'attempt.exam.teachingAssignment', 'attempt.exam.questions', 'attempt.answers.question'])
-            ->findOrFail($answerId);
-
-        abort_unless($answer->attempt->exam_id === $this->exam->id, 404);
-        abort_unless(auth()->user()->can('grade', $answer->attempt), 403);
-
-        $grader->grade(
-            $answer,
-            (int) ($this->points[$answerId] ?? 0),
-            $this->feedback[$answerId] ?? null,
-        );
-
-        $this->toast()->success('Answer graded.')->send();
-    }
-
-    public function attempts()
-    {
-        return $this->exam
-            ->attempts()
-            ->with(['student', 'answers.question', 'answers.selectedOption'])
-            ->latest()
-            ->get();
-    }
-}; ?>
-
 <div class="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -78,7 +16,7 @@ new #[Layout('layouts.app')] class extends Component
                         <p class="text-sm text-zinc-500">{{ $attempt->student->email }}</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
-                        <x-badge :text="str($attempt->status->value)->headline()" :color="$attempt->status === ExamAttemptStatus::Graded ? 'green' : ($attempt->status === ExamAttemptStatus::Expired ? 'red' : 'yellow')" light />
+                        <x-badge :text="str($attempt->status->value)->headline()" :color="$attempt->status === \App\Enums\ExamAttemptStatus::Graded ? 'green' : ($attempt->status === \App\Enums\ExamAttemptStatus::Expired ? 'red' : 'yellow')" light />
                         <x-badge text="{{ $attempt->score }} / {{ $attempt->max_score }} points" color="gray" light />
                     </div>
                 </div>
@@ -94,7 +32,7 @@ new #[Layout('layouts.app')] class extends Component
                                 <x-badge text="{{ $answer->points_awarded }} pts" color="gray" light />
                             </div>
 
-                            @if ($answer->question->type === QuestionType::MultipleChoice)
+                            @if ($answer->question->type === \App\Enums\QuestionType::MultipleChoice)
                                 <p class="mt-3 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
                                     Selected: {{ $answer->selectedOption?->text ?? 'No answer' }}
                                 </p>
