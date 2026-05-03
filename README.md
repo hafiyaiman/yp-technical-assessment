@@ -1,86 +1,190 @@
-# Laravel 11 Breeze Livewire TallStack UI
+# 🎓 Exam Portal
 
-Fresh Laravel 11 application scaffolded with Breeze, Livewire, TallStack UI v3, Tailwind CSS 4, Pest, MySQL configuration for TablePlus-driven local development, and Cloudflare R2 S3-compatible storage.
+A full-featured online examination platform built for academic institutions. Supports role-based access for admins, lecturers, and students — with timed exams, auto-grading, open-text grading, OTP authentication.
 
 ## Stack
 
-- Laravel 11
-- Laravel Breeze with the Livewire stack
-- Livewire 3 and Volt
-- TallStack UI v3
-- Tailwind CSS 4 through `@tailwindcss/vite`
-- Pest for tests
-- MySQL for the application database
-- Cloudflare R2 for object storage
+| Layer     | Technology                               |
+| --------- | ---------------------------------------- |
+| Framework | Laravel 11                               |
+| Frontend  | Livewire 3, Volt, TallStackUI v3         |
+| Styling   | Tailwind CSS 4 (via `@tailwindcss/vite`) |
+| Database  | MySQL                                    |
+| Storage   | Cloudflare R2 (S3-compatible)            |
+| Testing   | Pest (SQLite in-memory)                  |
 
-## Local Setup
+---
 
-Install PHP dependencies:
+## Getting Started
+
+### 1. Install dependencies
 
 ```bash
 composer install
-```
-
-Install frontend dependencies:
-
-```bash
 npm install
 ```
 
-Copy the environment file and generate an app key:
+### 2. Environment setup
 
 ```bash
 cp .env.example .env
 php artisan key:generate
 ```
 
-Automated tests use SQLite in memory through `phpunit.xml`, so tests do not require MySQL or R2 credentials.
+### 3. Configure your database
 
-## MySQL And TablePlus
+Create a MySQL database in TablePlus (or any client), then update `.env`:
 
-`.env.example` is set up for a local MySQL database that can be created and managed in TablePlus:
-
-```dotenv
+```env
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=yp_technical_assessment
+DB_DATABASE=exam_portal
 DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-Create the database in TablePlus with the same database name, then update `.env` with your local MySQL username and password.
-
-This machine's current PHP extension list does not show `pdo_mysql`. Enable/install the PHP MySQL PDO extension before running Laravel migrations against MySQL.
-
-After MySQL credentials are ready, run:
+### 4. Run migrations and seed demo data
 
 ```bash
 php artisan migrate
 php artisan db:seed
 ```
 
-The seeder creates a richer demo school dataset: one admin, seven lecturers, 49 students, five classes, six reusable subjects, teaching assignments for each class-subject pair, and several published/draft/closed exams.
+The seeder creates a full demo dataset: 1 admin, 7 lecturers, 49 students, 5 classes, 6 subjects, teaching assignments, and several exams in various states.
+
+### 5. Start the development server
+
+```bash
+php artisan serve
+npm run dev
+```
+
+---
+
+## Demo Accounts
+
+| Role         | Email                                         | Password |
+| ------------ | --------------------------------------------- | -------- |
+| Admin        | admin@example.com                             | password |
+| Lecturer     | lecturer@example.com                          | password |
+| Lecturer 1–6 | lecturer1@example.com … lecturer6@example.com | password |
+| Student      | student@example.com                           | password |
+| Student 1–48 | student1@example.com … student48@example.com  | password |
+
+---
+
+## Authentication
+
+Login uses a **two-step OTP flow**:
+
+1. User enters email and password.
+2. A 6-digit OTP is sent to their email (expires in 10 minutes, up to 5 failed attempts allowed).
+3. User enters the OTP at `/login/otp` to complete sign-in.
+
+### Local Email (Mailpit)
+
+Emails are sent to Mailpit locally. Configure `.env`:
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=127.0.0.1
+MAIL_PORT=1025
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="hello@example.com"
+```
+
+Open **http://127.0.0.1:8025** to view OTP emails in the Mailpit UI.
+
+## Roles & Permissions
+
+| Role           | Capabilities                                                                       |
+| -------------- | ---------------------------------------------------------------------------------- |
+| `system-admin` | Manage users, classes, subjects, enrollments, teaching assignments                 |
+| `lecturer`     | Create and manage exams, grade open-text answers, view results for own assignments |
+| `student`      | Take assigned exams, view own results                                              |
+
+Check roles and permissions in code:
+
+```php
+$user->hasRole('lecturer');
+$user->hasPermission('manage-exams');
+```
+
+Protect routes with middleware:
+
+```php
+Route::middleware('role:lecturer')->group(...);
+Route::middleware('permission:manage-exams')->group(...);
+```
+
+---
+
+## Routes Overview
+
+### Admin (`/admin`)
+
+| Path                          | Purpose                                        |
+| ----------------------------- | ---------------------------------------------- |
+| `/admin/users`                | Manage admin, lecturer, and student accounts   |
+| `/admin/classes`              | Set up classes, link subjects, enroll students |
+| `/admin/subjects`             | Manage reusable subjects                       |
+| `/admin/teaching-assignments` | Assign lecturers to class-subject pairs        |
+
+### Lecturer (`/lecturer`)
+
+| Path                                           | Purpose                                    |
+| ---------------------------------------------- | ------------------------------------------ |
+| `/lecturer/my-classes`                         | View assigned class-subject cards          |
+| `/lecturer/exams`                              | List, filter, publish, and close exams     |
+| `/lecturer/teaching/{assignment}/exams/create` | Create a new exam for an assignment        |
+| `/lecturer/exams/{exam}/edit`                  | Build and edit exam questions              |
+| `/lecturer/exams/{exam}/submissions`           | Grade open-text answers and review results |
+
+### Student (`/student`)
+
+| Path                                    | Purpose                                |
+| --------------------------------------- | -------------------------------------- |
+| `/student/exams`                        | Browse available exams                 |
+| `/student/exams/{exam}`                 | View exam instructions before starting |
+| `/student/attempts/{attempt}`           | Take the timed exam with autosave      |
+| `/student/attempts/{attempt}/review`    | Review answers before submitting       |
+| `/student/attempts/{attempt}/submitted` | Confirmation or expired state          |
+| `/student/results`                      | View past results and pending reviews  |
+
+---
+
+## Examination Rules
+
+- Students belong to one active class via `users.school_class_id`.
+- Lecturers can only create and manage exams for their own teaching assignments.
+- Students can only access published exams assigned to their class.
+- Each student gets **one attempt** per exam.
+- **Multiple-choice** questions are auto-scored on submission.
+- **Open-text** questions require manual lecturer grading.
+- Exam timers are enforced **server-side** via `expires_at`.
+
+---
 
 ## Cloudflare R2 Storage
 
-Cloudflare R2 is exposed as the Laravel `r2` disk and selected by default in `.env.example`:
+Configure R2 credentials in `.env`:
 
-```dotenv
+```env
 FILESYSTEM_DISK=r2
-CLOUDFLARE_R2_ACCESS_KEY_ID=<r2-access-key-id>
-CLOUDFLARE_R2_SECRET_ACCESS_KEY=<r2-secret-access-key>
+CLOUDFLARE_R2_ACCESS_KEY_ID=
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=
 CLOUDFLARE_R2_REGION=auto
-CLOUDFLARE_R2_BUCKET=<bucket-name>
+CLOUDFLARE_R2_BUCKET=
 CLOUDFLARE_R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 CLOUDFLARE_R2_URL=
 CLOUDFLARE_R2_USE_PATH_STYLE_ENDPOINT=false
 CLOUDFLARE_R2_VISIBILITY=private
 ```
 
-Use an R2 API token with object read/write access to the target bucket. If you configure a public bucket domain, place it in `CLOUDFLARE_R2_URL`; otherwise leave it blank.
-
-Once credentials are present, a quick storage health check can be done with:
+Verify the connection with Tinker:
 
 ```bash
 php artisan tinker
@@ -92,147 +196,14 @@ Storage::disk('r2')->get('health-check.txt');
 Storage::disk('r2')->delete('health-check.txt');
 ```
 
-## Roles, Permissions, And Authentication
+---
 
-The first portal module is implemented with Breeze authentication, email OTP login verification, and database-backed roles and permissions.
+## Testing
 
-Seeded roles:
-
-- `system-admin`: can manage users, lecturers, students, classes, subjects, student enrollment, and lecturer teaching assignments.
-- `lecturer`: can view assigned classes, create exams, grade submissions, and view results for their own teaching assignments.
-- `student`: can take exams and view own results.
-
-Seeded demo accounts:
-
-```text
-admin@example.com / password
-lecturer@example.com / password
-lecturer1@example.com / password
-lecturer2@example.com / password
-...
-lecturer6@example.com / password
-student@example.com / password
-student1@example.com / password
-student2@example.com / password
-...
-student48@example.com / password
-```
-
-Role and permission checks are available through:
-
-```php
-$user->hasRole('lecturer');
-$user->hasPermission('manage-exams');
-```
-
-Routes can be protected with middleware aliases:
-
-```php
-Route::middleware('role:lecturer')->group(...);
-Route::middleware('permission:manage-exams')->group(...);
-```
-
-Current protected route examples:
-
-- `/admin/dashboard`
-- `/lecturer/dashboard`
-- `/student/dashboard`
-
-## Examination Module
-
-The portal now includes an end-to-end online examination module.
-
-System admin routes:
-
-- `/admin/users` for admin, lecturer, and student account management.
-- `/admin/classes` for class setup, subject association, and student enrollment.
-- `/admin/subjects` for reusable subject management.
-- `/admin/teaching-assignments` for assigning lecturers to class-subject pairs.
-
-Lecturer routes:
-
-- `/lecturer/my-classes` for assigned class-subject cards.
-- `/lecturer/exams` for lecturer-owned exam listing, filtering, publishing, closing, and submissions.
-- `/lecturer/teaching/{assignment}/exams/create` for creating an exam from an assigned class-subject pair.
-- `/lecturer/exams/{exam}/edit` for the question builder.
-- `/lecturer/exams/{exam}/submissions` for open-text grading and result review.
-
-Student routes use a separate client-facing exam layout instead of the admin sidebar:
-
-- `/student/exams` for available class-assigned exams.
-- `/student/exams/{exam}` for instructions before starting.
-- `/student/attempts/{attempt}` for the timed exam screen with autosave.
-- `/student/attempts/{attempt}/review` for final review before submit.
-- `/student/attempts/{attempt}/submitted` for the success or expired state.
-- `/student/results` for past results and pending reviews.
-
-Rules implemented:
-
-- Students belong to one active class through `users.school_class_id`.
-- Subjects are reusable and assigned to classes by system admins.
-- Lecturers create exams only through assigned class-subject teaching assignments.
-- Exams store `teaching_assignment_id`, plus class and subject IDs for simple querying.
-- Students can only access published exams assigned to their class.
-- Lecturers can only see, edit, grade, and review exams for their own teaching assignments.
-- Each student gets one attempt per exam.
-- Multiple-choice questions are auto-scored.
-- Open-text questions remain pending until lecturer grading.
-- Exam timers are enforced server-side with `expires_at`.
-
-### Email OTP With Mailpit
-
-Login uses a two-step flow:
-
-1. The user enters email and password.
-2. The system emails a six-digit OTP.
-3. The user enters the OTP at `/login/otp` to finish authentication.
-
-Local email is configured for Mailpit:
-
-```dotenv
-MAIL_MAILER=smtp
-MAIL_HOST=127.0.0.1
-MAIL_PORT=1025
-MAIL_USERNAME=null
-MAIL_PASSWORD=null
-MAIL_ENCRYPTION=null
-MAIL_FROM_ADDRESS="hello@example.com"
-```
-
-Open the Mailpit UI at `http://127.0.0.1:8025` to read the OTP email. Mailpit's browser UI runs on `8025`; Laravel sends SMTP mail to `1025`. OTP codes expire after 10 minutes, and a pending code allows up to 5 failed attempts.
-
-## TallStack UI MCP
-
-The project includes `.mcp.json` for tools that support project-local MCP configuration:
-
-```json
-{
-    "mcpServers": {
-        "tallstackui": {
-            "type": "http",
-            "url": "https://tallstackui.com/mcp/tallstackui"
-        }
-    }
-}
-```
-
-## Development
-
-Run the app and Vite separately:
-
-```bash
-php artisan serve
-npm run dev
-```
-
-Build assets:
-
-```bash
-npm run build
-```
-
-Run tests:
+Tests use SQLite in-memory — no MySQL or R2 credentials required.
 
 ```bash
 php artisan test
 ```
+
+---

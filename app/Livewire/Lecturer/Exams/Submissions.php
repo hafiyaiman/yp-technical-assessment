@@ -17,7 +17,9 @@ class Submissions extends Component
     use Interactions;
 
     public Exam $exam;
+
     public array $points = [];
+
     public array $feedback = [];
 
     public function mount(Exam $exam): void

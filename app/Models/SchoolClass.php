@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class SchoolClass extends Model
 {
@@ -35,5 +36,19 @@ class SchoolClass extends Model
     public function teachingAssignments(): HasMany
     {
         return $this->hasMany(TeachingAssignment::class);
+    }
+
+    public function joinRequests(): HasMany
+    {
+        return $this->hasMany(ClassJoinRequest::class);
+    }
+
+    public static function generateCode(): string
+    {
+        do {
+            $code = 'CLS-'.Str::upper(Str::random(8));
+        } while (self::query()->where('code', $code)->exists());
+
+        return $code;
     }
 }

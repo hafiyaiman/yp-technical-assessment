@@ -10,8 +10,7 @@ use Livewire\Attributes\Locked;
 use Livewire\Volt\Component;
 use TallStackUi\Traits\Interactions;
 
-new #[Layout('layouts.guest')] class extends Component
-{
+new #[Layout('layouts.guest')] class extends Component {
     use Interactions;
 
     #[Locked]
@@ -46,17 +45,16 @@ new #[Layout('layouts.guest')] class extends Component
         // Here we will attempt to reset the user's password. If it is successful we
         // will update the password on an actual user model and persist it to the
         // database. Otherwise we will parse the error and return the response.
-        $status = Password::reset(
-            $this->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user) {
-                $user->forceFill([
+        $status = Password::reset($this->only('email', 'password', 'password_confirmation', 'token'), function ($user) {
+            $user
+                ->forceFill([
                     'password' => Hash::make($this->password),
                     'remember_token' => Str::random(60),
-                ])->save();
+                ])
+                ->save();
 
-                event(new PasswordReset($user));
-            }
-        );
+            event(new PasswordReset($user));
+        });
 
         // If the password was successfully reset, we will redirect the user back to
         // the application's home authenticated view. If there is an error we can
@@ -67,7 +65,10 @@ new #[Layout('layouts.guest')] class extends Component
             return;
         }
 
-        $this->toast()->success($this->invitation ? 'Password set.' : 'Password reset.', __($status))->flash()->send();
+        $this->toast()
+            ->success($this->invitation ? 'Password set.' : 'Password reset.', __($status))
+            ->flash()
+            ->send();
 
         $this->redirectRoute('login', navigate: true);
     }
@@ -80,16 +81,19 @@ new #[Layout('layouts.guest')] class extends Component
 
         <!-- Password -->
         <div class="mt-4">
-            <x-password wire:model="password" label="{{ __('Password') }}" required autocomplete="new-password" :rules="true" />
+            <x-password wire:model="password" label="{{ __('Password') }}" required autocomplete="new-password"
+                :rules="true" />
         </div>
 
         <!-- Confirm Password -->
         <div class="mt-4">
-            <x-password wire:model="password_confirmation" label="{{ __('Confirm Password') }}" required autocomplete="new-password" />
+            <x-password wire:model="password_confirmation" label="{{ __('Confirm Password') }}" required
+                autocomplete="new-password" />
         </div>
 
-        <div class="flex items-center justify-end mt-4">
-            <x-button type="submit" text="{{ $invitation ? __('Set Password') : __('Reset Password') }}" loading="resetPassword" />
+        <div class="flex items-center justify-end mt-6">
+            <x-button type="submit" class="w-full" text="{{ $invitation ? __('Set Password') : __('Reset Password') }}"
+                loading="resetPassword" />
         </div>
     </form>
 </div>

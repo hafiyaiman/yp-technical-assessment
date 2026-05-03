@@ -51,6 +51,11 @@ class User extends Authenticatable
         return $this->hasMany(ExamAttempt::class, 'student_id');
     }
 
+    public function classJoinRequests(): HasMany
+    {
+        return $this->hasMany(ClassJoinRequest::class, 'student_id');
+    }
+
     public function hasRole(string $role): bool
     {
         return $this->roles->contains('slug', $role);

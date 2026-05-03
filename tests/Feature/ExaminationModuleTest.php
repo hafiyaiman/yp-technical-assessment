@@ -4,6 +4,7 @@ use App\Enums\ExamAttemptStatus;
 use App\Enums\ExamStatus;
 use App\Enums\QuestionType;
 use App\Models\AuditLog;
+use App\Models\ClassJoinRequest;
 use App\Models\Exam;
 use App\Models\Question;
 use App\Models\QuestionOption;
@@ -11,6 +12,7 @@ use App\Models\SchoolClass;
 use App\Models\Subject;
 use App\Models\TeachingAssignment;
 use App\Models\User;
+use App\Enums\ClassJoinRequestStatus;
 use App\Services\Exams\ExamAttemptService;
 use App\Services\Exams\ExamPublicationService;
 use App\Services\Exams\OpenTextGradingService;
@@ -92,16 +94,16 @@ test('admin can create subjects and classes with student assignments', function 
 
     Livewire::test('admin.classes.index')
         ->set('name', 'Class 4A')
-        ->set('code', 'CLASS-4A')
         ->set('subjectIds', [$subject->id])
         ->set('studentIds', [$student->id])
         ->call('save')
         ->assertHasNoErrors();
 
-    $class = SchoolClass::query()->where('code', 'CLASS-4A')->firstOrFail();
+    $class = SchoolClass::query()->where('name', 'Class 4A')->firstOrFail();
 
     expect($class->subjects()->whereKey($subject->id)->exists())->toBeTrue();
     expect($student->fresh()->school_class_id)->toBe($class->id);
+    expect($class->code)->toStartWith('CLS-');
 });
 
 test('admin dashboard shows setup health and audit logs', function (): void {
@@ -165,12 +167,11 @@ test('class wizard requires details and subjects before moving forward', functio
 
     Livewire::test('admin.classes.index')
         ->call('nextClassStep')
-        ->assertHasErrors(['name' => 'required', 'code' => 'required'])
+        ->assertHasErrors(['name' => 'required'])
         ->assertSet('classStep', '1')
         ->set('name', 'Class 4B')
-        ->set('code', 'CLASS-4B')
         ->call('nextClassStep')
-        ->assertHasNoErrors(['name', 'code'])
+        ->assertHasNoErrors(['name'])
         ->assertSet('classStep', '2')
         ->call('nextClassStep')
         ->assertHasErrors(['subjectIds' => 'required'])
@@ -442,6 +443,73 @@ test('lecturer can open assigned class detail and only see enrolled class studen
         ->assertSee($fixture['student']->name)
         ->assertSee($fixture['exam']->title)
         ->assertDontSee($otherStudent->name);
+});
+
+test('student can request to join class by code and lecturer can approve or reject', function (): void {
+    $fixture = createAssignedExamFixture();
+    $newStudent = User::factory()->student()->create([
+        'name' => 'Join Request Student',
+        'school_class_id' => null,
+    ]);
+
+    $this->actingAs($newStudent);
+
+    Livewire::test('student.home')
+        ->assertSee('My class')
+        ->set('classCode', $fixture['class']->code)
+        ->call('requestClassJoin')
+        ->assertHasNoErrors();
+
+    $request = ClassJoinRequest::query()
+        ->where('student_id', $newStudent->id)
+        ->where('school_class_id', $fixture['class']->id)
+        ->firstOrFail();
+
+    expect($request->status)->toBe(ClassJoinRequestStatus::Pending);
+    expect($newStudent->fresh()->school_class_id)->toBeNull();
+
+    $this->actingAs($fixture['lecturer']);
+
+    Livewire::test('lecturer.teaching.show', ['assignment' => $fixture['assignment']])
+        ->assertSee('Class code: '.$fixture['class']->code)
+        ->assertSee('Join Request Student')
+        ->call('approveJoinRequest', $request->id)
+        ->assertHasNoErrors();
+
+    expect($newStudent->fresh()->school_class_id)->toBe($fixture['class']->id);
+    expect($request->fresh()->status)->toBe(ClassJoinRequestStatus::Approved);
+
+    $rejectStudent = User::factory()->student()->create(['school_class_id' => null]);
+    $rejectRequest = ClassJoinRequest::query()->create([
+        'student_id' => $rejectStudent->id,
+        'school_class_id' => $fixture['class']->id,
+        'status' => ClassJoinRequestStatus::Pending,
+    ]);
+
+    Livewire::test('lecturer.teaching.show', ['assignment' => $fixture['assignment']])
+        ->call('rejectJoinRequest', $rejectRequest->id)
+        ->assertHasNoErrors();
+
+    expect($rejectStudent->fresh()->school_class_id)->toBeNull();
+    expect($rejectRequest->fresh()->status)->toBe(ClassJoinRequestStatus::Rejected);
+});
+
+test('student with a class cannot request another class by code', function (): void {
+    $fixture = createAssignedExamFixture();
+    $otherClass = SchoolClass::factory()->create();
+    $student = User::factory()->student()->create([
+        'school_class_id' => $fixture['class']->id,
+    ]);
+
+    $this->actingAs($student);
+
+    Livewire::test('student.home')
+        ->set('classCode', $otherClass->code)
+        ->call('requestClassJoin')
+        ->assertHasNoErrors();
+
+    expect(ClassJoinRequest::query()->where('student_id', $student->id)->exists())->toBeFalse();
+    expect($student->fresh()->school_class_id)->toBe($fixture['class']->id);
 });
 
 test('lecturer can open owned exam overview and results only', function (): void {

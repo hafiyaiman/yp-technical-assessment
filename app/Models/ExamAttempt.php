@@ -59,4 +59,19 @@ class ExamAttempt extends Model
     {
         return $this->status === ExamAttemptStatus::InProgress && ! $this->isExpired();
     }
+
+    public function getPercentageAttribute(): float
+    {
+        return $this->max_score > 0 ? round(($this->score / $this->max_score) * 100, 1) : 0;
+    }
+
+    public function getPercentageColorAttribute(): string
+    {
+        return match (true) {
+            $this->percentage >= 80 => 'green',
+            $this->percentage >= 60 => 'blue',
+            $this->percentage >= 40 => 'yellow',
+            default => 'red',
+        };
+    }
 }

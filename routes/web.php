@@ -12,12 +12,13 @@ use App\Livewire\Lecturer\Exams\Index as LecturerExamsIndex;
 use App\Livewire\Lecturer\Exams\Results as LecturerExamResults;
 use App\Livewire\Lecturer\Exams\Show as LecturerExamShow;
 use App\Livewire\Lecturer\Exams\Submissions as LecturerExamSubmissions;
+use App\Livewire\Lecturer\Dashboard as LecturerDashboard;
 use App\Livewire\Lecturer\Teaching\Index as LecturerTeachingIndex;
 use App\Livewire\Lecturer\Teaching\Show as LecturerTeachingShow;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
-Route::view('/', 'welcome');
+Route::redirect('/', '/login')->name('home');
 
 Route::get('dashboard', function () {
     $user = auth()->user();
@@ -53,7 +54,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('teaching-assignments', AdminTeachingAssignmentsIndex::class)->name('teaching-assignments.index');
     });
 
-    Route::view('lecturer/dashboard', 'dashboard')
+    Route::get('lecturer/dashboard', LecturerDashboard::class)
         ->middleware('role:lecturer')
         ->name('lecturer.dashboard');
 

@@ -10,7 +10,7 @@
         <div class="rounded-lg border border-zinc-200 p-4 dark:border-dark-600">
             <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-dark-300">Class</p>
             <p class="mt-2 font-semibold text-zinc-950 dark:text-white">{{ $name ?: 'Class name not set' }}</p>
-            <p class="text-sm text-zinc-500 dark:text-dark-300">{{ $code ?: 'Class code not set' }}</p>
+            <p class="text-sm text-zinc-500 dark:text-dark-300">{{ $code ?: 'Class code will be generated' }}</p>
         </div>
 
         <div class="rounded-lg border border-zinc-200 p-4 dark:border-dark-600">

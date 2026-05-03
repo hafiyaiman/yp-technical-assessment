@@ -5,8 +5,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use TallStackUi\Traits\Interactions;
 
-new #[Layout('layouts.guest')] class extends Component
-{
+new #[Layout('layouts.guest')] class extends Component {
     use Interactions;
 
     public string $email = '';
@@ -23,9 +22,7 @@ new #[Layout('layouts.guest')] class extends Component
         // We will send the password reset link to this user. Once we have attempted
         // to send the link, we will examine the response then see the message we
         // need to show to the user. Finally, we'll send out a proper response.
-        $status = Password::sendResetLink(
-            $this->only('email')
-        );
+        $status = Password::sendResetLink($this->only('email'));
 
         if ($status != Password::RESET_LINK_SENT) {
             $this->addError('email', __($status));
@@ -48,8 +45,9 @@ new #[Layout('layouts.guest')] class extends Component
         <!-- Email Address -->
         <x-input wire:model="email" label="{{ __('Email') }}" type="email" required autofocus />
 
-        <div class="flex items-center justify-end mt-4">
-            <x-button type="submit" text="{{ __('Email Password Reset Link') }}" loading="sendPasswordResetLink" />
+        <div class="flex items-centermt-4 w-full mt-6">
+            <x-button class="w-full" type="submit" text="{{ __('Email Password Reset Link') }}"
+                loading="sendPasswordResetLink" />
         </div>
     </form>
 </div>

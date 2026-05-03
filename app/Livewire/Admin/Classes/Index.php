@@ -7,8 +7,6 @@ use App\Models\Subject;
 use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -51,7 +49,6 @@ class Index extends Component
 
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50', Rule::unique('school_classes', 'code')->ignore($this->editingId)],
             'description' => ['nullable', 'string', 'max:1000'],
             'subjectIds' => ['required', 'array', 'min:1'],
             'subjectIds.*' => ['integer', 'exists:subjects,id'],
@@ -60,12 +57,13 @@ class Index extends Component
         ], $this->classValidationMessages());
 
         $savingNewClass = $this->editingId === null;
+        $existingClass = $this->editingId === null ? null : SchoolClass::query()->findOrFail($this->editingId);
 
         $class = SchoolClass::query()->updateOrCreate(
             ['id' => $this->editingId],
             [
                 'name' => $validated['name'],
-                'code' => Str::upper($validated['code']),
+                'code' => $existingClass?->code ?? SchoolClass::generateCode(),
                 'description' => $validated['description'] ?: null,
             ],
         );
@@ -129,7 +127,6 @@ class Index extends Component
         match ($this->classStep) {
             '1' => $this->validate([
                 'name' => ['required', 'string', 'max:255'],
-                'code' => ['required', 'string', 'max:50', Rule::unique('school_classes', 'code')->ignore($this->editingId)],
                 'description' => ['nullable', 'string', 'max:1000'],
             ]),
             '2' => $this->validate([
